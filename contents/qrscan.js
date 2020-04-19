@@ -22,6 +22,14 @@ import GetLocation from 'react-native-get-location'
  } from 'react-native/Libraries/NewAppScreen';
 
  import Realm from 'realm';
+ import SimpleCrypto from "simple-crypto-js";
+
+ //ENcryption DETAILS
+ //ALG - AES256CBC
+ //Passphrase=COVID-19R35P0N5E-2020
+ //salt=65902EAEC6D35935
+ //key=F2ED72F3D2BF29F8394D2166E848C4F5F67B12F4CE6A8FF6
+ //iv =31CDF5901EC571946482F27C768681A9
 
  class Scan extends Component {
      constructor(props) {
@@ -129,13 +137,15 @@ import GetLocation from 'react-native-get-location'
         }
 
         //Processing the data from QR Code
-        const scanData = this.state.result;
-        const thisScan = scanData.data.split("\n");
-        const name = thisScan[0].split(":")[1].trim();
+        const scanData = appCrypt.decrypt(this.state.result.data);
+        const thisScan = scanData.split("\n");
+
+        const name = thisScan[0].split(":")[1].trim;
         const vehicle = thisScan[1].split(":")[1].trim();
         const phone = thisScan[2].split(":")[1].trim();
         const poe = thisScan[3].split(":")[1].trim();
         const poe_id = thisScan[4].split(":")[1].trim();
+        const base_url = thisScan[5].split(":")[1].trim();
         const tei = thisScan[5].split(":")[1].trim();
         const checkPointName = "HISP Kasangati"
 
@@ -219,6 +229,12 @@ import GetLocation from 'react-native-get-location'
      render() {
          const { scan, ScanResult, result } = this.state
          const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app'
+         console.log("SCAN DATA: "+ (result==null)?result: result.data);
+         const passphrase = "COVID-19R35P0N5E-2020";
+         const appCrypt = new SimpleCrypto(passphrase);
+         const decrypted = (result !== null)? appCrypt.decrypt(result.data): result;
+         console.log("DECRYPTED: "+ decrypted);
+         //TODO: PROCESS THE DATA and FORMAT HERE before displaying on LINE 257
          return (
              <View style={styles.scrollViewStyle}>
                  <Fragment>
@@ -238,7 +254,7 @@ import GetLocation from 'react-native-get-location'
                          <Fragment>
                              <View style={ScanResult ? styles.scanCardView : styles.cardView}>
                                  <Text style={styles.textTitle1}>TravelPass Details</Text>
-                                 <Text>{result.data}</Text>
+                                 <Text >{appCrypt.decrypt(result.data)}</Text>
                                  <TouchableOpacity onPress={this.scanAgain} style={styles.buttonTouchable}>
                                      <Text style={styles.buttonTextStyle}>Repeat TravelPass Scan</Text>
                                  </TouchableOpacity>

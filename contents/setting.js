@@ -1,6 +1,6 @@
 import React, { Component } from 'react';
 import { SafeAreaView, StyleSheet } from 'react-native';
-import { Container, Header, Content, Form, Item, Input, Label, Picker, Icon, Text, Separator, View, ListItem, Left, Right, Button, Body, Switch, Fab } from 'native-base';
+import { Container, Header, Content, Form, Item, Input, Label, Picker, Text, Separator, View, ListItem, Left, Right, Button, Body, Switch, Fab, Icon, Footer, FooterTab } from 'native-base';
 import { ProgressSteps, ProgressStep } from 'react-native-progress-steps';
 import Modal from 'react-native-modal';
 
@@ -187,6 +187,22 @@ export default class Settings extends Component {
                         </ProgressSteps>
                      </View>
             </Content>
+            <Footer >
+                <FooterTab style={{backgroundColor: 'yellow'}}>
+                    <Button>
+                        <Text>Security</Text>
+                        <Icon name='ios-lock' />
+                    </Button>
+                    <Button active>
+                       <Text>Checkpoint</Text>
+                        <Icon name='ios-compass' />
+                    </Button>
+                    <Button>
+                        <Text>About</Text>
+                        <Icon name='ios-information-circle' />
+                    </Button>
+                </FooterTab>
+            </Footer>
         </SafeAreaView>
     );
   }
