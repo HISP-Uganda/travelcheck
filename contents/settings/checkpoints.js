@@ -4,7 +4,7 @@ import {View, RefreshControl } from 'react-native';
 import moment from "moment";
 import Realm from 'realm';
 
-export default class Scans extends Component {
+export default class Checkpoints extends Component {
     constructor(props) {
          super(props);
          this.state = {
@@ -13,34 +13,25 @@ export default class Scans extends Component {
          };
      }
 
-     ScanSchema = {
-       name: 'Scan',
-       properties:
-           {
-             scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-             scan_time: 'string',
-             full_name: 'string',
-             vehicle: 'string',
-             phone_number: 'string',
-             point_of_entry: 'string',
-             poe_id: 'string',
-             tei:'string',
-             checkpoint: 'string',
-             latitude: 'string',
-             longitude: 'string',
-             submitted: {type: 'bool', default: false}
-        }
+     CheckpointSchema = {
+      name: 'Checkpoint',
+      properties:
+          {
+            name: 'string',
+            date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+            current: {type: 'bool', default: true}
+       }
      };
 
   async componentDidMount() {
-     const db = await Realm.open({
-       schema: [this.ScanSchema]
+     const ckdb = await Realm.open({
+       schema: [this.CheckpointSchema]
      });
 
-     const data = await db.objects('Scan');
-     this.setState({scans: data})
+     const data = await ckdb.objects('Checkpoint');
+     this.setState({scans: data.sorted('date_created', true)})
 
-//     db.close();
+     ckdb.close();
 
    }
 
@@ -75,12 +66,11 @@ export default class Scans extends Component {
                                         style={{marginLeft:0, paddingLeft:0}}
                                     >
                                          <Body>
-                                           <Text>{checkscans[key].full_name}</Text>
-                                           <Text note>{checkscans[key].poe_id + " - "+ checkscans[key].checkpoint}</Text>
+                                           <Text>{checkscans[key].name}</Text>
+                                           <Text note>{checkscans[key].date_created.toString()}</Text>
                                          </Body>
                                          <Right>
-                                           <Text note>{checkscans[key].scan_time}</Text>
-                                           <Text>Sent</Text>
+                                           <Text note>{(checkscans[key].current == true)? "Active": "Inactive"}</Text>
                                          </Right>
                                     </ListItem>
                             }

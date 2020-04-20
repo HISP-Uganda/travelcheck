@@ -22,7 +22,7 @@ export default class App extends Component {
           <Right />
         </Header>
         <Tabs>
-            <Tab heading={ <TabHeading><Icon name="square-outline" size={20} style={{color: '#E3E9FE'}}/><Text>Scan pass</Text></TabHeading>} >
+            <Tab heading={ <TabHeading><Icon name="camera" size={20} style={{color: '#E3E9FE'}}/><Text>Scan pass</Text></TabHeading>} >
                 <Scan />
             </Tab>
             <Tab heading={ <TabHeading><Icon name="list" size={24} style={{color: '#E3E9FE'}} />

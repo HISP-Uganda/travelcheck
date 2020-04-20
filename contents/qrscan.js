@@ -123,6 +123,16 @@ import GetLocation from 'react-native-get-location'
              }
          };
 
+         const CheckpointSchema = {
+             name: 'Checkpoint',
+             properties:
+                 {
+                   name: 'string',
+                   date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                   current: {type: 'bool', default: true}
+              }
+            };
+
         const checkDate = moment().format('YYYY-MM-DD');
         const checkTime = moment().format('HH:mm')
         let checkPoint = {};
@@ -135,55 +145,52 @@ import GetLocation from 'react-native-get-location'
         }catch(e){
             console.log(e.message);
         }
+        const passphrase = "COVID-19R35P0N5E-2020";
+        const appCrypt = new SimpleCrypto(passphrase);
 
         //Processing the data from QR Code
         const scanData = appCrypt.decrypt(this.state.result.data);
         const thisScan = scanData.split("\n");
+        console.log("THIS SCAN:: "+thisScan);
 
-        const name = thisScan[0].split(":")[1].trim;
+        //THE ORDER MUST BE OBSERVED
+        const name = thisScan[0].split(":")[1].trim();
         const vehicle = thisScan[1].split(":")[1].trim();
         const phone = thisScan[2].split(":")[1].trim();
         const poe = thisScan[3].split(":")[1].trim();
         const poe_id = thisScan[4].split(":")[1].trim();
         const base_url = thisScan[5].split(":")[1].trim();
-        const tei = thisScan[5].split(":")[1].trim();
-        const checkPointName = "HISP Kasangati"
+        const tei = thisScan[6].split(":")[1].trim();
+        const program = thisScan[7].split(":")[1].trim();
+        const programStage = thisScan[8].split(":")[1].trim();
+        const orgUnit = thisScan[9].split(":")[1].trim();
 
         console.log(checkPoint.latitude);
 
-        let payload = {
-          "program": "nBWFG3fYC8N",
-          "trackedEntityInstance":`${tei}`,
-          "programStage":"geweXwkKtFQ",
-          "orgUnit": "a4gTh6i5VdH", //TODO: Change it dynamically
-          "eventDate": `${checkDate}`,
-          "status": "COMPLETED",
-          "completedDate": `${checkDate}`,
-          "storedBy": "Socaya",
-          "coordinate": {
-            "latitude": checkPoint.latitude,
-            "longitude": checkPoint.longitude
-          },
-          "dataValues": [
-            {
-              "dataElement": "dD5ljdUgNHn",
-              "value": `${checkPointName}`
-            },
-            {
-              "dataElement": "Y3crbgZKSrx",
-              "value": `${checkTime}`
-            }
-          ]
-        };
+
 
 //        console.log(payload);
         //SAVE into Realm DB DATA:
 //        console.log('REALM PATH', Realm.defaultPath);
 
-        let realm;
-
+        let realmck;
+        let current_checkpoint = {};
         try{
-            realm = await Realm.open({schema: [ScanSchema]});
+            realmck = await Realm.open({schema: [CheckpointSchema]});
+            current_checkpoint = realmck.objects("Checkpoint").filtered('current==true');
+//            realmck.close();
+        }catch(e){
+            console.log(e.message);
+        }
+
+
+        console.log("TOTAL ACTIVE CHECKPOINTS: "+current_checkpoint.length);
+        console.log("ACTIVE CHECKPOINTS: "+current_checkpoint[0].name);
+        const checkPointName = (current_checkpoint.length > 0)? current_checkpoint[0].name: "Checkpoint Not Set";
+
+        let realm;
+        try{
+            realm = await Realm.open({schema: [ScanSchema, CheckpointSchema]});
 
             realm.write(() => {
               const newScan = realm.create('Scan', {
@@ -201,12 +208,41 @@ import GetLocation from 'react-native-get-location'
                 submitted: false,
               });
             });
+
+
 //            const scans = realm.objects('Scan');
 //            console.log("TOTAL SCANS: "+ scans.length);
             realm.close();
         }catch(e){
             console.log(e.message);
         }
+
+        let payload = {
+                  "program": `${program}`,
+                  "trackedEntityInstance":`${tei}`,
+                  "programStage":`${programStage}`,
+                  "orgUnit": `${orgUnit}`, //TODO: Change it dynamically
+                  "eventDate": `${checkDate}`,
+                  "status": "COMPLETED",
+                  "completedDate": `${checkDate}`,
+                  "storedBy": "Socaya",
+                  "coordinate": {
+                    "latitude": checkPoint.latitude,
+                    "longitude": checkPoint.longitude
+                  },
+                  //TODO: Dynamically load DEs from COVID-19 PASS
+                  "dataValues": [
+                    {
+                      "dataElement": "dD5ljdUgNHn",
+                      "value": `${checkPointName}`
+                    },
+                    {
+                      "dataElement": "Y3crbgZKSrx",
+                      "value": `${checkTime}`
+                    }
+                  ]
+                };
+
 
         this.setState({
             loading: true,
@@ -228,13 +264,17 @@ import GetLocation from 'react-native-get-location'
      }
      render() {
          const { scan, ScanResult, result } = this.state
-         const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app'
-         console.log("SCAN DATA: "+ (result==null)?result: result.data);
          const passphrase = "COVID-19R35P0N5E-2020";
          const appCrypt = new SimpleCrypto(passphrase);
+         const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app'
+         console.log("SCAN DATA: "+ (result==null)?result: result.data);
+
          const decrypted = (result !== null)? appCrypt.decrypt(result.data): result;
          console.log("DECRYPTED: "+ decrypted);
          //TODO: PROCESS THE DATA and FORMAT HERE before displaying on LINE 257
+
+         const scanInfo = (decrypted !== null)?decrypted.split("\n"): null;
+         const displayScan = (scanInfo !== null)? scanInfo[0]+"\n"+ scanInfo[1] +"\n"+ scanInfo[2] +"\n"+ scanInfo[3]+"\n"+ scanInfo[4]: null;
          return (
              <View style={styles.scrollViewStyle}>
                  <Fragment>
@@ -254,7 +294,7 @@ import GetLocation from 'react-native-get-location'
                          <Fragment>
                              <View style={ScanResult ? styles.scanCardView : styles.cardView}>
                                  <Text style={styles.textTitle1}>TravelPass Details</Text>
-                                 <Text >{appCrypt.decrypt(result.data)}</Text>
+                                 <Text style={{textTransform: 'uppercase'}}>{displayScan}</Text>
                                  <TouchableOpacity onPress={this.scanAgain} style={styles.buttonTouchable}>
                                      <Text style={styles.buttonTextStyle}>Repeat TravelPass Scan</Text>
                                  </TouchableOpacity>
