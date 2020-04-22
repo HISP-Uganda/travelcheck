@@ -6,8 +6,7 @@ export default class About extends Component {
         const { onChange } = this.props;
         return (
             <Content>
-                <Title>COVID-19 TravelCheck App</Title>
-                <Card style={{flex: 0, padding: 20}}>
+                <Card style={{flex: 0, height: '100%'}}>
                     <CardItem>
                       <Left>
                         <Body>
@@ -18,7 +17,7 @@ export default class About extends Component {
                     </CardItem>
                     <CardItem>
                       <Text>
-                            This app is developed in response to COVID-19 Pandemic. As countries implements total lockdowns, Cargo drivers are allowed to enter in and out of the country. Each crew member has to be tracked and at anypoint, MOH has to know the position they were last seen.
+                            This app is developed in response to COVID-19 Pandemic. As countries implement total lockdowns, Cargo drivers are allowed to enter in and out of the country. Each crew member must be tracked during the travel time as they await Test results for COVID-19, MOH Siurveilance team will the know where they were last seen.
                         </Text>
                     </CardItem>
                     <CardItem>

@@ -33,32 +33,30 @@ export default class NewPoint extends Component {
 
         //Save in Local DB
 
-        let realm;
+        let realmck;
         try{
-            realm = await Realm.open({schema: [this.CheckpointSchema]});
+            realmck = await Realm.open({schema: [this.CheckpointSchema]});
 
-            const current_checkpoint = realm.objects('Checkpoint').filtered('current == true');
+            const current_checkpoint = realmck.objects('Checkpoint').filtered('current == true');
             console.log("TOTAL CURRENT: "+current_checkpoint.length);
 
             if(current_checkpoint.length > 0){
-            realm.write (
+            realmck.write (
                     () => {
                         current_checkpoint[0].current = false
                     }
                 )
             }
-
             //Disable current checkpoint first
             //ADD
-            realm.write(() => {
-              const newScan = realm.create('Checkpoint', {
+            realmck.write(() => {
+              const newScan = realmck.create('Checkpoint', {
                 name: `${checkpoint}`,
                 date_created: `${created}`,
                 current: current
               });
             });
-
-            realm.close();
+            realmck.close();
         }catch(e){
             console.log(e.message);
         }
@@ -73,10 +71,9 @@ export default class NewPoint extends Component {
         return (
             <Content>
                 <View style={{flex: 1}}>
+                    <Text style={styles.textTitle}>Add new Checkpoint here</Text>
                     <Form>
-                         <Separator bordered>
-                            <Text>Checkpoint Settings</Text>
-                         </Separator>
+
                          <Item stackedLabel>
                             <Label>Checkpoint Name</Label>
                             <Input placeholder="Checkpoint Name"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({checkpoint: text}); }} value={this.state.text}/>
@@ -99,9 +96,6 @@ export default class NewPoint extends Component {
                          <Text style={styles.buttonTextStyle}>Save Checkpoint</Text>
                     </TouchableOpacity>
                 </View>
-
-
-
              </Content>
         );
     }

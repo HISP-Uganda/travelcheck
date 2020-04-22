@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Container, Header, Content, List, ListItem, Left, Body, Right, Thumbnail, Text } from 'native-base';
+import { Container, Header, Content, List, ListItem, Left, Body, Right, Thumbnail, Text ,Icon} from 'native-base';
 import {View, RefreshControl } from 'react-native';
 import moment from "moment";
 import Realm from 'realm';
@@ -69,8 +69,9 @@ export default class Checkpoints extends Component {
                                            <Text>{checkscans[key].name}</Text>
                                            <Text note>{checkscans[key].date_created.toString()}</Text>
                                          </Body>
-                                         <Right>
+                                         <Right style={{alignItems: 'center'}}>
                                            <Text note>{(checkscans[key].current == true)? "Active": "Inactive"}</Text>
+                                           <Icon name={(checkscans[key].current == true)? "radio-button-on": "radio-button-off"} style={{color:(checkscans[key].current == true)? '#229954' : '#AEB6BF', fontSize: 24}}/>
                                          </Right>
                                     </ListItem>
                             }

@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
-import { Container, Header, Title, Content, Footer, Badge, FooterTab, Button, Left, Right, Body, Text, Tabs, Tab, TabHeading, Icon} from 'native-base';
+import { Container, Header, Title, Content, Footer, Badge, FooterTab, Button, Left, Right, Body, Tabs, Tab, TabHeading, Icon} from 'native-base';
+
+import {Text} from 'react-native';
 
 import Scan from './contents/qrscan';
 import Scans from './contents/scans';
@@ -21,19 +23,31 @@ export default class App extends Component {
           </Body>
           <Right />
         </Header>
-        <Tabs>
-            <Tab heading={ <TabHeading><Icon name="camera" size={20} style={{color: '#E3E9FE'}}/><Text>Scan pass</Text></TabHeading>} >
+        <Tabs >
+            <Tab heading={
+                <TabHeading style={{backgroundColor: '#D4E6F1'}} >
+                    <Icon name="qr-scanner" style={{color: '#212F3C', fontSize: 18}}/>
+                    <Text style={{marginLeft: 5, textTransform: 'uppercase'}}>Scan pass</Text>
+                </TabHeading>}  >
                 <Scan />
             </Tab>
-            <Tab heading={ <TabHeading><Icon name="list" size={24} style={{color: '#E3E9FE'}} />
-                <Text>All scans </Text>
+            <Tab heading={
+                <TabHeading style={{backgroundColor: '#D4E6F1'}}>
+                    <Icon name="book"  style={{color: '#212F3C',fontSize: 18}} />
+                    <Text style={{marginLeft: 5, textTransform: 'uppercase'}}>All scans </Text>
                 </TabHeading>} >
                 <Scans />
             </Tab>
-            <Tab heading={ <TabHeading><Icon name="settings" size={20} style={{color: '#E3E9FE'}}/><Text>Options</Text></TabHeading>} >
+            <Tab heading={
+                <TabHeading style={{backgroundColor: '#D4E6F1'}}>
+                    <Icon name="settings" style={{color: '#212F3C', fontSize: 18}}/>
+                    <Text style={{ marginLeft: 5, textTransform: 'uppercase'}}>Settings</Text></TabHeading>} >
                 <Options />
             </Tab>
         </Tabs>
+        <Footer style={{height: 30,padding: 2, color: '#FFFFFF', backgroundColor: '#EBF5FB'}}>
+                  <Text style={{color: '#154360'}}>Designed by HISP Uganda</Text>
+        </Footer>
       </Container>
     );
   }

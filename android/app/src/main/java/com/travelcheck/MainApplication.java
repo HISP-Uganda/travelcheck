@@ -5,8 +5,6 @@ import android.content.Context;
 import com.facebook.react.PackageList;
 import com.facebook.react.ReactApplication;
 import io.realm.react.RealmReactPackage;
-import dog.craftz.sqlite_2.RNSqlite2Package;
-import dog.craftz.sqlite_2.RNSqlite2Package;
 import com.github.douglasjunior.reactNativeGetLocation.ReactNativeGetLocationPackage;
 import com.reactnativecommunity.rnpermissions.RNPermissionsPackage;
 import org.reactnative.camera.RNCameraPackage;

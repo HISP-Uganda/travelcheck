@@ -37,7 +37,7 @@ export default class Options extends Component {
 
                         <Button active={this.state.selectedTab==='checkpoints'} onPress={() => this.setState({selectedTab: 'checkpoints'})}>
                             <Text>Checkpoints</Text>
-                            <Icon name='list' />
+                            <Icon name='map' />
                         </Button>
                         <Button active={this.state.selectedTab==='newpoint'} onPress={() => this.setState({selectedTab: 'newpoint'})}>
                             <Text>New Point</Text>
