@@ -22,9 +22,11 @@ import GetLocation from 'react-native-get-location'
  } from 'react-native/Libraries/NewAppScreen';
 
  import Realm from 'realm';
- import SimpleCrypto from "simple-crypto-js";
+// import SimpleCrypto from "simple-crypto-js";
  import NetInfo from "@react-native-community/netinfo";
  import uuid from 'react-native-uuid';
+ import AES from 'crypto-js/aes';
+ import Utf8 from 'crypto-js/enc-utf8';
 
  //ENcryption DETAILS
  //ALG - AES256CBC
@@ -157,12 +159,10 @@ import GetLocation from 'react-native-get-location'
             console.log(e.message);
         }
         const passphrase = "COVID-19R35P0N5E-2020";
-        const appCrypt = new SimpleCrypto(passphrase);
+        let bytes  = AES.decrypt(this.state.result.data, passphrase);
+        const scanData = bytes.toString(Utf8);
 
-        //Processing the data from QR Code
-        const scanData = appCrypt.decrypt(this.state.result.data);
         const thisScan = scanData.split("\n");
-        console.log("THIS SCAN:: "+thisScan);
 
         //THE ORDER MUST BE OBSERVED
         const name = thisScan[0].split(":")[1].trim();
@@ -280,18 +280,19 @@ import GetLocation from 'react-native-get-location'
         realm.close();
      }
      render() {
-         const { scan, ScanResult, result } = this.state
+         const { scan, ScanResult, result } = this.state;
          const passphrase = "COVID-19R35P0N5E-2020";
-         const appCrypt = new SimpleCrypto(passphrase);
          const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app'
          console.log("SCAN DATA: "+ (result==null)?result: result.data);
 
-         const decrypted = (result !== null)? appCrypt.decrypt(result.data): result;
-         console.log("DECRYPTED: "+ decrypted);
-         //TODO: PROCESS THE DATA and FORMAT HERE before displaying on LINE 257
+         const bytes  = (result !== null)? AES.decrypt(this.state.result.data, passphrase): result;
+         const decrypted = (bytes !== null)? bytes.toString(Utf8): null;
+
+         console.log("DECRYPTED DATA : "+decrypted);
 
          const scanInfo = (decrypted !== null)?decrypted.split("\n"): null;
          const displayScan = (scanInfo !== null)? scanInfo[0]+"\n"+ scanInfo[1] +"\n"+ scanInfo[2] +"\n"+ scanInfo[3]+"\n"+ scanInfo[4]: null;
+
          return (
              <View style={styles.scrollViewStyle}>
                  <Fragment>
@@ -312,6 +313,7 @@ import GetLocation from 'react-native-get-location'
 
                      {ScanResult &&
                          <Fragment>
+
                             <Card style={{height: '100%'}}>
                                 <CardItem>
                                     <Text style={styles.textTitle}>TravelPass Details!</Text>
@@ -321,7 +323,6 @@ import GetLocation from 'react-native-get-location'
                                      <TouchableOpacity onPress={this.scanAgain} style={styles.buttonTouchable}>
                                          <Text style={styles.buttonTextStyle}>Repeat TravelPass Scan</Text>
                                      </TouchableOpacity>
-
                                       <Text style={{fontSize: 20, textAlign: 'center', margin: 40, color: (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? '#28B463': '#D35400'}}>
                                             { (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true) ? "You are Online. Data will be submitted online": "You are offline. Your data will be stored on the Phone."
 } </Text>
@@ -341,6 +342,7 @@ import GetLocation from 'react-native-get-location'
                              ref={(node) => { this.scanner = node }}
                              onRead={this.onSuccess}
                              showMarker={true}
+                             fadeIn={false}
                              bottomContent={
                              <View>
                                  <TouchableOpacity style={styles.buttonTouchable} onPress={() => this.scanner.reactivate()}>
