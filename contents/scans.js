@@ -42,6 +42,7 @@ export default class Scans extends Component {
 
 //     const data = await db.objects('Scan');
      const data = db.objects('Scan');
+     console.log(data);
 
      this.setState({scans: data})
 
@@ -58,6 +59,7 @@ export default class Scans extends Component {
 
   render() {
 //    const scans = this.state.realm ? this.state.realm.objects('Scan') : false
+
     const checkscans = this.state.scans;
     console.log("ARRAY OBJECTS of Scans");
     console.log(Array.from(checkscans));

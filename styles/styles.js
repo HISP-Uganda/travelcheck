@@ -5,7 +5,7 @@ const deviceHeight = Dimensions.get('screen').height;
 const styles = {
     scrollViewStyle: {
         flex: 1,
-        justifyContent: 'center',
+//        justifyContent: 'center',
         backgroundColor: '#EFF0F6'
     },
 
@@ -14,7 +14,7 @@ const styles = {
         fontSize: 18,
         textAlign: 'center',
         padding: 16,
-        color: '#003E8A'
+        color: '#010101'
     },
     textTitle1: {
         fontWeight: 'bold',
@@ -90,7 +90,7 @@ const styles = {
     },
     buttonTouchable: {
         fontSize: 21,
-        backgroundColor: '#003E8A',
+        backgroundColor: '#ffd700',
         marginTop: 32,
         borderRadius: 20,
         width: deviceWidth - 120,
@@ -102,7 +102,7 @@ const styles = {
     buttonTouchableSuccess: {
             fontSize: 21,
             backgroundColor: '#343648',
-            marginTop: 32,
+            marginTop: 20,
             borderRadius: 20,
             width: deviceWidth - 120,
             justifyContent: 'center',
@@ -111,8 +111,9 @@ const styles = {
         },
 
     buttonTextStyle: {
-        color: 'white',
+        color: '#010101',
         fontWeight: 'bold',
+        fontSize: 18
     }
 }
 export default styles;

@@ -60,17 +60,17 @@ import GetLocation from 'react-native-get-location'
              scan: false,
              ScanResult: true
          })
-         if (check === 'http') {
-             Linking
-                 .openURL(e.data)
-                 .catch(err => console.error('An error occured', err));
-         } else {
-             this.setState({
-                 result: e,
-                 scan: false,
-                 ScanResult: true
-             })
-         }
+//         if (check === 'http') {
+//             Linking
+//                 .openURL(e.data)
+//                 .catch(err => console.error('An error occured', err));
+//         } else {
+//             this.setState({
+//                 result: e,
+//                 scan: false,
+//                 ScanResult: true
+//             })
+//         }
 
      }
 
@@ -314,16 +314,17 @@ import GetLocation from 'react-native-get-location'
                      {ScanResult &&
                          <Fragment>
 
-                            <Card style={{height: '100%'}}>
-                                <CardItem>
-                                    <Text style={styles.textTitle}>TravelPass Details!</Text>
-                                </CardItem>
+                            <Card style={{height: '100%', flex: 1}}>
+
                                 <Body>
+                                    <CardItem>
+                                        <Text style={styles.textTitle}>TravelPass Details!</Text>
+                                    </CardItem>
                                     <Text style={{textTransform: 'uppercase'}}>{displayScan}</Text>
                                      <TouchableOpacity onPress={this.scanAgain} style={styles.buttonTouchable}>
                                          <Text style={styles.buttonTextStyle}>Repeat TravelPass Scan</Text>
                                      </TouchableOpacity>
-                                      <Text style={{fontSize: 20, textAlign: 'center', margin: 40, color: (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? '#28B463': '#D35400'}}>
+                                      <Text style={{fontSize: 20, textAlign: 'center', margin: 10, color: (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? '#28B463': '#D35400'}}>
                                             { (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true) ? "You are Online. Data will be submitted online": "You are offline. Your data will be stored on the Phone."
 } </Text>
                                       <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
