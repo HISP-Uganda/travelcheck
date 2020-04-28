@@ -7,9 +7,10 @@ import { createStackNavigator } from '@react-navigation/stack';
 
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
-import Checkpoints from './Checkpoints';
+//import Checkpoints from './Checkpoints';
 //import AddCheckpoint from './AddCheckpoint';
 import Passports from './Passports';
+import Routes from './Routes';
 //import ScanPassport from './ScanPassport';
 //import Checkpoints from './Checkpoints';
 
@@ -35,18 +36,19 @@ class Settings extends Component {
     return (
       <View style={{ flex: 1}}>
         <Tab.Navigator
-            initialRouteName="Checkpoints"
+            initialRouteName="Routes"
             activeColor="#ffd700"
             inactiveColor="#3e2465"
             barStyle={{ backgroundColor: '#FFFFFF', paddingBottom: 0}}>
-              <Tab.Screen name="Checkpoints" component={Checkpoints}
-                options={{
-                  tabBarLabel: 'Checkpoints',
-                  tabBarIcon: ({ color }) => (
-                    <Icon name="pin" style={{fontSize: 20}} />
-                  ),
-                }}
-              />
+              <Tab.Screen name="Routes" component={Routes}
+                  options={{
+                    tabBarLabel: 'Routes',
+                    tabBarIcon: ({ color }) => (
+                      <Icon name="pin" style={{fontSize: 20}} />
+                    ),
+                  }}
+                />
+
               <Tab.Screen name="Passports" component={Passports}
                 options={{
                   tabBarLabel: 'Passports',
@@ -56,7 +58,7 @@ class Settings extends Component {
                 }}
               />
 
-              <Tab.Screen name="Boarding Pass" component={Checkpoints}
+              <Tab.Screen name="Boarding Pass" component={Passports}
                   options={{
                      tabBarLabel: 'Boarding Pass',
                      tabBarIcon: ({ color }) => (

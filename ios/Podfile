@@ -87,6 +87,8 @@ target 'travelcheck' do
 
   pod 'RealmJS', :path => '../node_modules/realm'
 
+  pod 'react-native-mapbox-gl', :path => '../node_modules/@react-native-mapbox-gl/maps'
+
   target 'travelcheckTests' do
     inherit! :complete
     # Pods for testing

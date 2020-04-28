@@ -11,6 +11,8 @@ import Details from './screens/Details';
 import Settings from './screens/Settings';
 import AddCheckpoint from './screens/AddCheckpoint';
 import ScanPassport from './screens/ScanPassport';
+import Checkpoints from './screens/Checkpoints';
+import Routes from './screens/Routes';
 
 
 const Tab = createMaterialTopTabNavigator();
@@ -56,6 +58,7 @@ const MainTabNavigator = () => {
         })}>
         <Tab.Screen name='Home' component={Home} />
         <Tab.Screen name='Scans' component={Scans} />
+        <Tab.Screen name='Stops' component={Checkpoints} />
         <Tab.Screen name='Others' component={Settings} />
       </Tab.Navigator>
     )
@@ -113,6 +116,13 @@ const MainStackNavigator = () => {
                       title: 'Scan Passport'
                     })}
                 />
+        <Stack.Screen
+              name='Routes'
+              component={Routes}
+              options={({ route }) => ({
+                  title: 'View Map Routes'
+                })}
+            />
       </Stack.Navigator>
       <Footer style={{height: 30, backgroundColor: '#ffd700', alignItems: 'center'}}>
         <Text>Designed by HISP Uganda</Text>
