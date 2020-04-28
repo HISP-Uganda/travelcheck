@@ -25,6 +25,8 @@ export default class NewPoint extends Component {
         };
 
       saveCheckpoint = async () =>{
+        const {navigation} = this.props;
+
         const checkpoint = this.state.checkpoint;
         const current = this.state.currentCheckpoint;
         const created = moment().format('YYYY-MM-DD');
@@ -58,7 +60,7 @@ export default class NewPoint extends Component {
               });
             });
             realmck.close();
-            console.log(newCheckpoint);
+            (newCheckpoint) ? navigation.goBack(): null;
         }catch(e){
             console.log(e.message);
         }
