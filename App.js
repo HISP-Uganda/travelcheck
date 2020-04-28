@@ -9,6 +9,8 @@ import MainStackNavigator from './AppNavigator'
 
 export default class App extends Component {
   render() {
-    return <MainStackNavigator />
+    return (
+        <MainStackNavigator />
+    )
   }
 }

@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { Container, Header, Content, List, ListItem, Left, Body, Right, Thumbnail, Text ,Icon} from 'native-base';
 import {View, RefreshControl } from 'react-native';
 import moment from "moment";
-import Realm from 'realm';
+import styles from '../styles/styles';
 
 export default class Checkpoints extends Component {
     constructor(props) {
@@ -79,6 +79,13 @@ export default class Checkpoints extends Component {
                     }
                 </List>
             </Content>
+            <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={() => navigation.navigate('AddCheckpoint',{screen: 'AddCheckpoint'})}
+                  style={styles.touchableOpacityStyle}>
+                  <Icon name="add" />
+                </TouchableOpacity>
+          </View>
         </Container>
     );
   }

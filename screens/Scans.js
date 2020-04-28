@@ -9,7 +9,6 @@ class Scans extends Component {
     constructor(props) {
          super(props);
          this.state = {
-//             db: null,
              scans: {},
          };
     }
@@ -37,16 +36,11 @@ class Scans extends Component {
           };
 
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
-          // do something
-          console.log("SCans ALL HERE TAB CLICKED");
           Realm.open({
             schema: [ScanSchema]
           }).then(realm => {
             const data = realm.objects('Scan');
-            console.log(data);
-//            this.setState({ realm });
             this.setState({scans: data});
-            console.log("TOTAL SCANS: "+ this.state.scans.length);
             this.setState({db: realm});
             realm.close();
           });
@@ -54,35 +48,28 @@ class Scans extends Component {
      }
 
      componentWillUnmount = () => {
-          // Close the realm if there is one open.
         this._unsubscribe();
-//        const {realm} = this.state;
-//        if (realm !== null && !realm.isClosed) {
-//          realm.close();
-//        }
      }
 
   render() {
      const checkscans = this.state.scans;
-     console.log("ARRAY OBJECTS of Scans");
-     console.log(Array.from(checkscans));
      const data = Array.from(checkscans);
      const { navigation } = this.props;
-//     const { db } = this.state;
-//     realm.close();
-//     db.close();
+
     return (checkscans !== null) ? (
         <Container>
             <Content>
                 <List>
                       {
                           Object.keys(data).map(function(key) {
+                            const scanDetails = JSON.stringify(data[key]);
+                            const id = JSON.parse(scanDetails).poe_id;
                               return <ListItem
                                       key={key}
                                       avatar
                                       button={true}
                                       onLongPress={() => console.warn("event -> onLongPress")}
-                                      onPress={() => navigation.navigate('Details',{screen: 'Details',params: { scan_id: data[key].poe_id, details: JSON.stringify(data[key]) },})}
+                                      onPress={() => navigation.navigate('Details',{screen: 'Details',params: { scan_id: id, details: scanDetails },})}
                                       style={{marginLeft:0, paddingLeft:0, textColor: (data[key].submitted === true)? "#1E8449": "#5D6D7E"}}
                                   >
                                        <Body>

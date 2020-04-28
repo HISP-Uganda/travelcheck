@@ -91,7 +91,7 @@ const styles = {
     buttonTouchable: {
         fontSize: 21,
         backgroundColor: '#ffd700',
-        marginTop: 32,
+        marginTop: 20,
         borderRadius: 20,
         width: deviceWidth - 120,
         justifyContent: 'center',
@@ -114,6 +114,18 @@ const styles = {
         color: '#010101',
         fontWeight: 'bold',
         fontSize: 18
+    },
+
+    touchableOpacityStyle: {
+       position: 'absolute',
+       width: 50,
+       height: 50,
+       borderRadius: 50,
+       alignItems: 'center',
+       justifyContent: 'center',
+       right: 10,
+       bottom: 10,
+       backgroundColor: '#ffd700'
     }
 }
 export default styles;
