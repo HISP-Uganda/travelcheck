@@ -2,6 +2,9 @@ import React, { Component, Fragment } from 'react';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import BarcodeMask from 'react-native-barcode-mask';
 import { List, ListItem, Content, InputGroup, Input,Icon, Button, Card, CardItem, Body, Footer, FooterTab} from 'native-base';
+import AES from 'crypto-js/aes';
+import Utf8 from 'crypto-js/enc-utf8';
+
 
 import styles from '../styles/styles'
 import {
@@ -22,7 +25,7 @@ import GetLocation from 'react-native-get-location'
  } from 'react-native/Libraries/NewAppScreen';
 
  import Realm from 'realm';
- import SimpleCrypto from "simple-crypto-js";
+// import SimpleCrypto from "simple-crypto-js";
  import NetInfo from "@react-native-community/netinfo";
  import uuid from 'react-native-uuid';
 
@@ -50,25 +53,83 @@ import GetLocation from 'react-native-get-location'
           this.setState({connection_Status: connection});
      }
 
-     onSuccess = (e) => {
+     onSuccess = async (e) => {
          const check = e.data.substring(0, 4);
          console.log('scanned data' + check);
          this.setState({
              result: e,
              scan: false,
-             ScanResult: true
+             ScanResult: true,
+             loading: true,
          })
-         if (check === 'http') {
-             Linking
-                 .openURL(e.data)
-                 .catch(err => console.error('An error occured', err));
-         } else {
-             this.setState({
-                 result: e,
-                 scan: false,
-                 ScanResult: true
-             })
-         }
+         const ScanSchema = {
+                      name: 'Scan',
+                      properties:
+                      {
+                        uuid: 'string',
+                        scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                        scan_time: 'string',
+                        case_id: 'string',
+                        first_name: 'string',
+                        last_name: 'string',
+                        dob: 'string',
+                        phone_number: 'string',
+                        nationality: 'string',
+                        latitude: 'string',
+                        longitude: 'string'
+                      }
+                  };
+
+                 const checkDate = moment().format('YYYY-MM-DD');
+                 const checkTime = moment().format('HH:mm')
+                 let scanLocation = {};
+                 try{
+                      scanLocation = await GetLocation.getCurrentPosition({
+                           enableHighAccuracy: true,
+                           timeout: 15000,
+                     });
+
+                 }catch(e){
+                     console.log(e.message);
+                 }
+                 const passphrase = "COVID-19R35P0N5E-2020";
+                 const bytes = AES.decrypt(this.state.result.data, passphrase);
+                 const scanData = bytes.toString(Utf8);
+
+                 const thisScan = scanData.split("\n");
+                 console.log("THIS SCAN:: "+thisScan);
+
+                 //THE ORDER MUST BE OBSERVED
+                 const case_id = thisScan[0].split(":")[1].trim();
+                 const first_name = thisScan[1].split(":")[1].trim();
+                 const last_name = thisScan[2].split(":")[1].trim();
+                 const dob = thisScan[3].split(":")[1].trim();
+                 const phone_number = thisScan[4].split(":")[1].trim();
+                 const nationality = thisScan[5].split(": ")[1].trim();
+
+                 let realm;
+
+                 try{
+                     realm = await Realm.open({schema: [ScanSchema]});
+                     realm.write(() => {
+                       const newScan = realm.create('Scan', {
+                         uuid: uuid.v4(),
+                         scan_date: `${checkDate}`,
+                         scan_time: `${checkTime}`,
+                         case_id: `${case_id}`,
+                         first_name: `${first_name}`,
+                         last_name: `${last_name}`,
+                         dob: `${dob}`,
+                         phone_number: `${phone_number}`,
+                         nationality: `${nationality}`,
+                         latitude: `${scanLocation.latitude}`,
+                         longitude: `${scanLocation.longitude}`
+                       });
+                     });
+                     realm.close();
+                 }catch(e){
+                     console.log(e.message);
+                 }
 
      }
 
@@ -110,183 +171,18 @@ import GetLocation from 'react-native-get-location'
         });
      }
 
-
-     submitCheckRecord = async () => {
-
-        const ScanSchema = {
-             name: 'Scan',
-             properties:
-             {
-               uuid: 'string',
-               scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-               scan_time: 'string',
-               full_name: 'string',
-               vehicle: 'string',
-               phone_number: 'string',
-               point_of_entry: 'string',
-               poe_id: 'string',
-               dhis_url: 'string',
-               tei:'string',
-               checkpoint: 'string',
-               latitude: 'string',
-               longitude: 'string',
-               submitted: {type: 'bool', default: false}
-             }
-         };
-
-         const CheckpointSchema = {
-             name: 'Checkpoint',
-             properties:
-                 {
-                   name: 'string',
-                   date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                   current: {type: 'bool', default: true}
-              }
-         };
-
-        const checkDate = moment().format('YYYY-MM-DD');
-        const checkTime = moment().format('HH:mm')
-        let checkPoint = {};
-        try{
-             checkPoint = await GetLocation.getCurrentPosition({
-                  enableHighAccuracy: true,
-                  timeout: 15000,
-            });
-
-        }catch(e){
-            console.log(e.message);
-        }
-        const passphrase = "COVID-19R35P0N5E-2020";
-        const appCrypt = new SimpleCrypto(passphrase);
-
-        //Processing the data from QR Code
-        const scanData = appCrypt.decrypt(this.state.result.data);
-        const thisScan = scanData.split("\n");
-        console.log("THIS SCAN:: "+thisScan);
-
-        //THE ORDER MUST BE OBSERVED
-        const name = thisScan[0].split(":")[1].trim();
-        const vehicle = thisScan[1].split(":")[1].trim();
-        const phone = thisScan[2].split(":")[1].trim();
-        const poe = thisScan[3].split(":")[1].trim();
-        const poe_id = thisScan[4].split(":")[1].trim();
-        const base_url = thisScan[5].split(": ")[1].trim();
-        const tei = thisScan[6].split(":")[1].trim();
-        const program = thisScan[7].split(":")[1].trim();
-        const programStage = thisScan[8].split(":")[1].trim();
-        const orgUnit = thisScan[9].split(":")[1].trim();
-
-        let current_checkpoint = {};
-
-        let realm;
-        let checkPointName;
-
-        try{
-            realm = await Realm.open({schema: [ScanSchema, CheckpointSchema]});
-
-            current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
-            console.log("TOTAL ACTIVE CHECKPOINTS: "+current_checkpoint.length);
-            console.log("ACTIVE CHECKPOINTS: "+current_checkpoint[0].name);
-            checkPointName = (current_checkpoint.length > 0)? current_checkpoint[0].name: "Checkpoint Not Set";
-
-            console.log("CheckPoint: "+ checkPointName);
-        }catch(e){
-            console.log(e.message);
-        }
-
-        let payload = {
-                  "program": `${program}`,
-                  "trackedEntityInstance":`${tei}`,
-                  "programStage":`${programStage}`,
-                  "orgUnit": `${orgUnit}`,
-                  "eventDate": `${checkDate}`,
-                  "status": "COMPLETED",
-                  "completedDate": `${checkDate}`,
-                  "storedBy": "Socaya",
-                  "coordinate": {
-                    "latitude": checkPoint.latitude,
-                    "longitude": checkPoint.longitude
-                  },
-                  //TODO: Dynamically load DEs from COVID-19 PASS
-                  "dataValues": [
-                    {
-                      "dataElement": "dD5ljdUgNHn",
-                      "value": `${checkPointName}`
-                    },
-                    {
-                      "dataElement": "Y3crbgZKSrx",
-                      "value": `${checkTime}`
-                    }
-                  ]
-                };
-
-
-        this.setState({
-            loading: true,
-        })
-
-        //TODO: Load from App settings the DHIS2 instance.
-        const api_url = `${base_url}/api/events`;
-        console.log("API URL: "+api_url);
-        const username = "Socaya";
-        const password = "Dhis@2020";
-        const token = base64.encode(`${username}:${password}`);
-        console.log(token);
-
-        const status = this.state.connection_Status;
-
-        const connected = status.isConnected;
-        const internetReachable = status.isInternetReachable;
-        let recordSubmitted  = false;
-
-        //Skip data submission to DHIS2
-        if(connected === true && internetReachable === true){
-            const response = await axios.post( api_url, payload,  {
-                headers: {
-                 'Authorization': `Basic ${token}`
-               }
-            });
-
-            const apiResponse = response;
-            const httpStatusCode = apiResponse.data.httpStatusCode; //200
-            const httpStatus = apiResponse.data.status; //OK
-            const importStatus = apiResponse.data.response.status; //SUCCESS === true
-
-            recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
-
-        }
-        //Continue saving to Phone
-        realm.write(() => {
-          const newScan = realm.create('Scan', {
-            uuid: uuid.v4(),
-            scan_date: `${checkDate}`,
-            scan_time: `${checkTime}`,
-            full_name: `${name}`,
-            vehicle: `${vehicle}`,
-            phone_number: `${phone}`,
-            point_of_entry: `${poe}`,
-            poe_id: `${poe_id}`,
-            dhis_url: `${base_url}`,
-            tei:`${tei}`,
-            checkpoint: `${checkPointName}`,
-            latitude: `${checkPoint.latitude}`,
-            longitude: `${checkPoint.longitude}`,
-            submitted: recordSubmitted,
-          });
-        });
-//
-//        const scans = realm.objects('Scan');
-//        console.log("TOTAL SCANS: "+ scans.length);
-        realm.close();
-     }
      render() {
          const { scan, ScanResult, result } = this.state
          const passphrase = "COVID-19R35P0N5E-2020";
-         const appCrypt = new SimpleCrypto(passphrase);
-         const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app'
+//         const appCrypt = new SimpleCrypto(passphrase);
+         const desccription = 'Rwanda is ramping up its testing for the coronavirus through periodic community testing and sampling in hospitals and clinics across the country. Rwanda’s mass testing seeks to fulfil the conditions set by the World Health Organisation for countries before lifting the coronavirus lockdown. '
          console.log("SCAN DATA: "+ (result==null)?result: result.data);
 
-         const decrypted = (result !== null)? appCrypt.decrypt(result.data): result;
+//         const decrypted = (result !== null)? appCrypt.decrypt(result.data) : result;
+
+         const bytes = (result !== null)? AES.decrypt(result.data, passphrase): result;
+         const decrypted = (bytes !== null)? bytes.toString(Utf8): "";
+
          console.log("DECRYPTED: "+ decrypted);
          //TODO: PROCESS THE DATA and FORMAT HERE before displaying on LINE 257
 
@@ -299,12 +195,12 @@ import GetLocation from 'react-native-get-location'
                      {!scan && !ScanResult &&
                          <Card style={{height: '100%'}}>
                             <CardItem>
-                                <Text style={styles.textTitle}>Welcome To COVID-19 TravelCheck App!</Text>
+                                <Text style={styles.textTitle}>Rwanda COVID-19 Result Scan</Text>
                             </CardItem>
                             <Body>
                                 <Text numberOfLines={8} style={styles.descText}>{desccription}</Text>
                                 <TouchableOpacity onPress={this.activeQR} style={styles.buttonTouchable}>
-                                     <Text style={styles.buttonTextStyle}>Scan TravelPass</Text>
+                                     <Text style={styles.buttonTextStyle}>Scan COVID-19 Result</Text>
                                 </TouchableOpacity>
                             </Body>
                          </Card>
@@ -313,21 +209,14 @@ import GetLocation from 'react-native-get-location'
                      {ScanResult &&
                          <Fragment>
                             <Card style={{height: '100%'}}>
-                                <CardItem>
-                                    <Text style={styles.textTitle}>TravelPass Details!</Text>
+                                <CardItem style={{alignItems: 'center'}}>
+                                    <Text style={styles.textTitle}>COVID-19 Result Vital Information!</Text>
                                 </CardItem>
                                 <Body>
                                     <Text style={{textTransform: 'uppercase'}}>{displayScan}</Text>
                                      <TouchableOpacity onPress={this.scanAgain} style={styles.buttonTouchable}>
-                                         <Text style={styles.buttonTextStyle}>Repeat TravelPass Scan</Text>
+                                         <Text style={styles.buttonTextStyle}>Repeat Result Scan</Text>
                                      </TouchableOpacity>
-
-                                      <Text style={{fontSize: 20, textAlign: 'center', margin: 40, color: (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? '#28B463': '#D35400'}}>
-                                            { (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true) ? "You are Online. Data will be submitted online": "You are offline. Your data will be stored on the Phone."
-} </Text>
-                                      <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
-                                        <Text style={styles.buttonTextStyle}>{(this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? 'Submit TravelCheck': 'Save TravelCheck on Phone'}</Text>
-                                      </TouchableOpacity>
                                 </Body>
                              </Card>
                          </Fragment>
@@ -344,7 +233,7 @@ import GetLocation from 'react-native-get-location'
                              bottomContent={
                              <View>
                                  <TouchableOpacity style={styles.buttonTouchable} onPress={() => this.scanner.reactivate()}>
-                                      <Text style={styles.buttonTextStyle}>OK. Got it!</Text>
+                                      <Text style={styles.buttonTextStyle}>Refresh Scanner</Text>
                                   </TouchableOpacity>
                              </View>
                              }

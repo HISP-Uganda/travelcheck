@@ -14,30 +14,29 @@ export default class Scans extends Component {
          };
      }
 
-     ScanSchema = {
-       name: 'Scan',
-       properties:
-           {
-             uuid: 'string',
-             scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-             scan_time: 'string',
-             full_name: 'string',
-             vehicle: 'string',
-             phone_number: 'string',
-             point_of_entry: 'string',
-             poe_id: 'string',
-             dhis_url: 'string',
-             tei:'string',
-             checkpoint: 'string',
-             latitude: 'string',
-             longitude: 'string',
-             submitted: {type: 'bool', default: false}
-        }
-     };
+
 
   async componentDidMount() {
+    const ScanSchema = {
+               name: 'Scan',
+               properties:
+               {
+                 uuid: 'string',
+                 scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                 scan_time: 'string',
+                 case_id: 'string',
+                 first_name: 'string',
+                 last_name: 'string',
+                 dob: 'string',
+                 phone_number: 'string',
+                 nationality: 'string',
+                 latitude: 'string',
+                 longitude: 'string'
+               }
+           };
+
      const db = await Realm.open({
-       schema: [this.ScanSchema]
+       schema: [ScanSchema]
      });
 
 //     const data = await db.objects('Scan');
@@ -82,12 +81,11 @@ export default class Scans extends Component {
                                       style={{marginLeft:0, paddingLeft:0, textColor: (checkscans[key].submitted === true)? "#1E8449": "#5D6D7E"}}
                                   >
                                        <Body>
-                                         <Text>{checkscans[key].full_name}</Text>
-                                         <Text note>{checkscans[key].poe_id + " - "+ checkscans[key].checkpoint}</Text>
+                                         <Text>{checkscans[key].case_id + " - "+ checkscans[key].first_name+" "+ checkscans[key].last_name}</Text>
+                                         <Text note>{checkscans[key].nationality +" ("+checkscans[key].dob +")"}</Text>
                                        </Body>
                                        <Right style={{alignItems: 'center'}}>
                                          <Text note>{checkscans[key].scan_time}</Text>
-                                         <Icon name={(checkscans[key].submitted == true)? "done-all": "checkmark"}  style={{color:(checkscans[key].submitted == true)? '#229954' : '#F39C12', fontSize: 24}}/>
                                        </Right>
                                   </ListItem>
                               }

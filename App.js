@@ -15,11 +15,11 @@ export default class App extends Component {
         <Header>
           <Left>
             <Button transparent>
-              <Icon name="hand" size={36} style={{color: '#E3E9FE'}}/>
+              <Icon name="cube" size={36} style={{color: '#E3E9FE',fontSize: 36}}/>
             </Button>
           </Left>
           <Body>
-            <Title>TravelCheck</Title>
+            <Title>COVID Results</Title>
           </Body>
           <Right />
         </Header>
@@ -27,22 +27,16 @@ export default class App extends Component {
             <Tab heading={
                 <TabHeading style={{backgroundColor: '#D4E6F1'}} >
                     <Icon name="qr-scanner" style={{color: '#212F3C', fontSize: 18}}/>
-                    <Text style={{marginLeft: 5, textTransform: 'uppercase'}}>Scan pass</Text>
+                    <Text style={{marginLeft: 5, textTransform: 'uppercase'}}>Scan COVID Result</Text>
                 </TabHeading>}  >
                 <Scan />
             </Tab>
             <Tab heading={
                 <TabHeading style={{backgroundColor: '#D4E6F1'}}>
                     <Icon name="book"  style={{color: '#212F3C',fontSize: 18}} />
-                    <Text style={{marginLeft: 5, textTransform: 'uppercase'}}>All scans </Text>
+                    <Text style={{marginLeft: 5, textTransform: 'uppercase'}}>All COVID scans </Text>
                 </TabHeading>} >
                 <Scans />
-            </Tab>
-            <Tab heading={
-                <TabHeading style={{backgroundColor: '#D4E6F1'}}>
-                    <Icon name="settings" style={{color: '#212F3C', fontSize: 18}}/>
-                    <Text style={{ marginLeft: 5, textTransform: 'uppercase'}}>Settings</Text></TabHeading>} >
-                <Options />
             </Tab>
         </Tabs>
         <Footer style={{height: 30,padding: 2, color: '#FFFFFF', backgroundColor: '#EBF5FB'}}>

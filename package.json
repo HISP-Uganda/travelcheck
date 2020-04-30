@@ -37,7 +37,6 @@
     "react-native-ui-lib": "^5.6.1",
     "react-native-uuid": "^1.4.9",
     "realm": "^5.0.3",
-    "simple-crypto-js": "^2.2.0",
     "typescript": "^3.8.3"
   },
   "devDependencies": {
