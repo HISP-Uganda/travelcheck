@@ -10,7 +10,9 @@ import Scans from './screens/Scans';
 import Details from './screens/Details';
 import Settings from './screens/Settings';
 import AddCheckpoint from './screens/AddCheckpoint';
-import ScanPassport from './screens/ScanPassport';
+import ScanPassport from './screens/documents/ScanPassport';
+import ScanIdentityCard from './screens/documents/ScanIdentityCard';
+import ScanBoardingPass from './screens/documents/ScanBoardingPass';
 import Checkpoints from './screens/Checkpoints';
 import Routes from './screens/Routes';
 
@@ -116,6 +118,20 @@ const MainStackNavigator = () => {
                       title: 'Scan Passport'
                     })}
                 />
+        <Stack.Screen
+              name='ScanIdentityCard'
+              component={ScanIdentityCard}
+              options={({ route }) => ({
+                  title: 'Scan Identity Card'
+                })}
+            />
+        <Stack.Screen
+              name='ScanBoardingPass'
+              component={ScanBoardingPass}
+              options={({ route }) => ({
+                  title: 'Scan Boardingpass'
+                })}
+            />
         <Stack.Screen
               name='Routes'
               component={Routes}

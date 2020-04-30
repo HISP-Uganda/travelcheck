@@ -1,6 +1,6 @@
 import React, { Component, Fragment } from 'react';
-import { Button, View, Text, TouchableOpacity,StatusBar,Linking,Left, Right, FlatList } from 'react-native';
-import { List, ListItem, Content, InputGroup, Input,Icon, Card, CardItem, Body, Footer, FooterTab} from 'native-base';
+import { Button, View, Text, TouchableOpacity,StatusBar,Linking,Left, Right, FlatList,SafeAreaView,ScrollView } from 'react-native';
+import { List, ListItem, Content, InputGroup, Input,Icon, Card, CardItem, Body, Footer, FooterTab, Toast} from 'native-base';
 
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import axios from 'axios';
@@ -17,6 +17,8 @@ import Utf8 from 'crypto-js/enc-utf8';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { Col, Row, Grid } from "react-native-easy-grid";
 
+//import { SafeAreaView} from 'react-native-safe-area-context';
+
 let realm;
 
 class Home extends Component {
@@ -30,205 +32,256 @@ class Home extends Component {
                  connection_Status : null,
                  decryptedData : null,
                  recentScan: null,
+                 checkpoint_exists: null,
+                 checkpoint: null,
+                 recorded: null
              };
          }
 
-      componentDidMount = async () => {
+    componentDidMount = async () => {
            const connection = await NetInfo.fetch();
            this.setState({connection_Status: connection});
+
+           //Store scanned information into the Local DB
+          const CheckpointSchema = {
+               name: 'Checkpoint',
+               properties:
+                   {
+                     name: 'string',
+                     date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                     current: {type: 'bool', default: true}
+                }
+           };
+
+           this._unsubscribe = await this.props.navigation.addListener('focus', () => {
+              Realm.open({
+                schema: [CheckpointSchema]
+              }).then(realm => {
+                const current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
+                const ck_exists = (current_checkpoint.length > 0)? true: false;
+                this.setState({checkpoint_exists: ck_exists});
+                (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
+                this.setState({db: realm});
+                realm.close();
+              });
+            });
       }
 
-      onSuccess = async (e) => {
-               const check = e.data.substring(0, 4);
-               this.setState({
-                   result: e,
-                   scan: false,
-                   ScanResult: true
-               })
+    componentWillUnmount = () => {
+         this._unsubscribe();
+    }
 
-               //Store scanned information into the Local DB
-               const CheckpointSchema = {
-                    name: 'Checkpoint',
-                    properties:
-                        {
-                          name: 'string',
-                          date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                          current: {type: 'bool', default: true}
-                     }
-                };
+    onSuccess = async (e) => {
+           const check = e.data.substring(0, 4);
+           console.log(e);
+           this.setState({
+               result: e,
+               scan: false,
+               ScanResult: true
+           })
 
-               const ScanSchema = {
-                    name: 'Scan',
-                    properties:
-                    {
-                      uuid: 'string',
-                      scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                      scan_time: 'string',
-                      full_name: 'string',
-                      vehicle: 'string',
-                      phone_number: 'string',
-                      point_of_entry: 'string',
-                      poe_id: 'string',
-                      dhis_url: 'string',
-                      tei:'string',
-                      checkpoint: 'string',
-                      latitude: 'string',
-                      longitude: 'string',
-                      submitted: {type: 'bool', default: false}
-                    }
-                };
+           let myscan;
 
-                const checkDate = moment().format('YYYY-MM-DD');
-                const checkTime = moment().format('HH:mm')
-                let checkPoint = {};
-                try{
-                     checkPoint = await GetLocation.getCurrentPosition({
-                          enableHighAccuracy: true,
-                          timeout: 15000,
-                    });
+            const checkDate = moment().format('YYYY-MM-DD');
+            const checkTime = moment().format('HH:mm')
+            let checkPoint = {};
+            try{
+                 checkPoint = await GetLocation.getCurrentPosition({
+                      enableHighAccuracy: true,
+                      timeout: 15000,
+                });
 
-                }catch(e){
-                    console.log(e.message);
-                }
+            }catch(e){
+                console.log(e.message);
+            }
+            console.log("Decrypting Records");
+            const passphrase = "COVID-19R35P0N5E-2020";
+            let bytes  = await AES.decrypt(this.state.result.data, passphrase);
+            const scanData = bytes.toString(Utf8);
+            console.log(scanData);
+            const thisScan = scanData.split("\n");
+            console.log(thisScan);
 
-                const passphrase = "COVID-19R35P0N5E-2020";
-                let bytes  = AES.decrypt(this.state.result.data, passphrase);
-                const scanData = bytes.toString(Utf8);
+            //THE ORDER MUST BE OBSERVED
+            const name = thisScan[0].split(":")[1].trim();
+            const vehicle = thisScan[1].split(":")[1].trim();
+            const phone = thisScan[2].split(":")[1].trim();
+            const poe = thisScan[3].split(":")[1].trim();
+            const poe_id = thisScan[4].split(":")[1].trim();
+            const base_url = thisScan[5].split(": ")[1].trim();
+            const tei = thisScan[6].split(":")[1].trim();
+            const program = thisScan[7].split(":")[1].trim();
+            const programStage = thisScan[8].split(":")[1].trim();
+            const orgUnit = thisScan[9].split(":")[1].trim();
 
-                const thisScan = scanData.split("\n");
+            let current_checkpoint = {};
+            const ckpt = JSON.parse(this.state.checkpoint);
+            const checkPointName = (ckpt !== undefined) ? ckpt[0].name : "Checkpoint Unavailable";
+            const ScanSchema = {
+               name: 'Scan',
+               properties:
+               {
+                 uuid: 'string',
+                 scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                 scan_time: 'string',
+                 full_name: 'string',
+                 vehicle: 'string',
+                 phone_number: 'string',
+                 point_of_entry: 'string',
+                 org_unit: 'string',
+                 poe_id: 'string',
+                 dhis_url: 'string',
+                 program: 'string',
+                 program_stage: 'string',
+                 tei:'string',
+                 checkpoint: 'string',
+                 latitude: 'string',
+                 longitude: 'string',
+                 submitted: {type: 'bool', default: false}
+               }
+           };
 
-                //THE ORDER MUST BE OBSERVED
-                const name = thisScan[0].split(":")[1].trim();
-                const vehicle = thisScan[1].split(":")[1].trim();
-                const phone = thisScan[2].split(":")[1].trim();
-                const poe = thisScan[3].split(":")[1].trim();
-                const poe_id = thisScan[4].split(":")[1].trim();
-                const base_url = thisScan[5].split(": ")[1].trim();
-                const tei = thisScan[6].split(":")[1].trim();
-                const program = thisScan[7].split(":")[1].trim();
-                const programStage = thisScan[8].split(":")[1].trim();
-                const orgUnit = thisScan[9].split(":")[1].trim();
+            realm = await Realm.open({schema: [ScanSchema]});
+            let existScan = await realm.objects("Scan").filtered("poe_id==$0", poe_id);
 
-                let current_checkpoint = {};
+            console.log("Record Found. "+existScan.length);
+            if(existScan.length > 0){
+                //Update the Scan record
+                console.log("Record Found. Updating");
+                realm.write(() => {
+                  existScan[0].poe_id = poe_id;
+                  existScan[0].scan_date = checkDate;
+                  existScan[0].scan_time = checkTime;
+                  existScan[0].full_name = name;
+                  existScan[0].vehicle = vehicle;
+                  existScan[0].phone_number = phone;
+                  existScan[0].point_of_entry = poe;
+                  existScan[0].org_unit = orgUnit;
+                  existScan[0].dhis_url = base_url;
+                  existScan[0].program = program;
+                  existScan[0].program_stage = programStage;
+                  existScan[0].tei = tei;
+                  existScan[0].checkpoint = `${checkPointName}`;
+                  existScan[0].latitude = `${checkPoint.latitude}`;
+                  existScan[0].longitude = `${checkPoint.longitude}`;
+                });
+                myscan = JSON.stringify(existScan);
+                console.log(myscan);
 
+            }else{
+                //Continue saving to Phone
+                let scanned;
+                realm.write(() => {
+                    scanned = realm.create('Scan', {
+                    uuid: uuid.v4(),
+                    scan_date: `${checkDate}`,
+                    scan_time: `${checkTime}`,
+                    full_name: `${name}`,
+                    vehicle: `${vehicle}`,
+                    phone_number: `${phone}`,
+                    point_of_entry: `${poe}`,
+                    org_unit: `${orgUnit}`,
+                    poe_id: `${poe_id}`,
+                    dhis_url: `${base_url}`,
+                    program: `${program}`,
+                    program_stage:`${programStage}`,
+                    tei:`${tei}`,
+                    checkpoint: `${checkPointName}`,
+                    latitude: `${checkPoint.latitude}`,
+                    longitude: `${checkPoint.longitude}`,
+                    submitted: false,
+                  });
+                  myscan = JSON.stringify(scanned);
+                });
+            }
 
-                let checkPointName;
+            this.setState({
+                decryptedData: scanData,
+                recentScan: JSON.parse(myscan)
+            })
 
-                try{
-                    realm = await Realm.open({schema: [ScanSchema, CheckpointSchema]});
+            realm.close();
+       }
 
-                    current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
-                    checkPointName = (current_checkpoint.length > 0)? current_checkpoint[0].name: "Checkpoint Unavailable";
-                    const existScan = await realm.objects("Scan").filtered("poe_id==$0", poe_id);
-
-                    console.log("Record Found. "+existScan);
-                    if(existScan.length > 0){
-                        //Update the Scan record
-                        console.log("Record Found. Updating");
-                        realm.write(() => {
-                          existScan.poe_id = poe_id;
-                          existScan.scan_date = checkDate;
-                          existScan.scan_time = checkTime;
-                          existScan.full_name = name;
-                          existScan.vehicle = vehicle;
-                          existScan.phone_number = phone;
-                          existScan.point_of_entry = poe;
-                          existScan.dhis_url = base_url;
-                          existScan.tei = tei;
-                          existScan.checkpoint = checkPointName;
-                          existScan.latitude = checkPoint.latitude;
-                          existScan.longitude = checkPoint.longitude;
-                        });
-
-                        this.setState({
-                            recentScan: existScan
-                          });
-                    }else{
-                        //Continue saving to Phone
-                        let scanned;
-                        realm.write(() => {
-                            scanned = realm.create('Scan', {
-                            uuid: uuid.v4(),
-                            scan_date: `${checkDate}`,
-                            scan_time: `${checkTime}`,
-                            full_name: `${name}`,
-                            vehicle: `${vehicle}`,
-                            phone_number: `${phone}`,
-                            point_of_entry: `${poe}`,
-                            poe_id: `${poe_id}`,
-                            dhis_url: `${base_url}`,
-                            tei:`${tei}`,
-                            checkpoint: `${checkPointName}`,
-                            latitude: `${checkPoint.latitude}`,
-                            longitude: `${checkPoint.longitude}`,
-                            submitted: false,
-                          });
-
-                          this.setState({
-                            recentScan: scanned
-                          });
-                        });
-                    }
-                    realm.close();
-                }catch(e){
-                    console.log(e.message);
-                }
-
-                this.setState({
-                    decryptedData: scanData
-                })
-           }
-
-           activeQR = () => {
-               this.setState({
-                   scan: true
-               })
-           }
-           scanAgain = () => {
-               this.setState({
-                   scan: true,
-                   ScanResult: false
-               })
-           }
+    activeQR = () => {
+           this.setState({
+               scan: true
+           })
+    }
+    scanAgain = () => {
+           this.setState({
+               scan: true,
+               ScanResult: false
+           })
+    }
 
     submitCheckRecord = async () => {
-        const {recentScan} = this.state;
+        const {recentScan} = await this.state;
+        const { navigation} = this.props;
+        console.log("RECENT XX "+JSON.stringify(recentScan));
         console.log(recentScan);
+
+        const ScanSchema = {
+           name: 'Scan',
+           properties:
+           {
+             uuid: 'string',
+             scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
+             scan_time: 'string',
+             full_name: 'string',
+             vehicle: 'string',
+             phone_number: 'string',
+             point_of_entry: 'string',
+             org_unit: 'string',
+             poe_id: 'string',
+             dhis_url: 'string',
+             program: 'string',
+             program_stage: 'string',
+             tei:'string',
+             checkpoint: 'string',
+             latitude: 'string',
+             longitude: 'string',
+             submitted: {type: 'bool', default: false}
+           }
+       };
 
         //TODO: Load from Realm DB
         let payload = {
-          "program": `${program}`,
-          "trackedEntityInstance":`${tei}`,
-          "programStage":`${programStage}`,
-          "orgUnit": `${orgUnit}`,
-          "eventDate": `${checkDate}`,
+          "program": `${recentScan[0].program}`,
+          "trackedEntityInstance":`${recentScan[0].tei}`,
+          "programStage":`${recentScan[0].program_stage}`,
+          "orgUnit": `${recentScan[0].org_unit}`,
+          "eventDate": `${recentScan[0].scan_date}`,
           "status": "COMPLETED",
-          "completedDate": `${checkDate}`,
+          "completedDate": `${recentScan[0].scan_date}`,
           "storedBy": "Socaya",
           "coordinate": {
-            "latitude": checkPoint.latitude,
-            "longitude": checkPoint.longitude
+            "latitude": `${recentScan[0].latitude}`,
+            "longitude": `${recentScan[0].longitude}`
           },
           //TODO: Dynamically load DEs from COVID-19 PASS
           "dataValues": [
             {
-              "dataElement": "dD5ljdUgNHn",
-              "value": `${checkPointName}`
+              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
+//              "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
+              "value": `${recentScan[0].checkpoint}`
             },
             {
-              "dataElement": "Y3crbgZKSrx",
-              "value": `${checkTime}`
+              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
+//              "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
+              "value": `${recentScan[0].scan_time}`
             }
           ]
         };
 
-
+        console.log("PAYLOAD: "+JSON.stringify(payload))
+//        return false;
         this.setState({
             loading: true,
         })
 
         //TODO: Load from App settings the DHIS2 instance.
-        const api_url = `${base_url}/api/events`;
+        const api_url = `${recentScan[0].dhis_url}/api/events`;
         console.log("API URL: "+api_url);
         const username = "Socaya";
         const password = "Dhis@2020";
@@ -240,9 +293,7 @@ class Home extends Component {
         const connected = status.isConnected;
         const internetReachable = status.isInternetReachable;
         let recordSubmitted  = false;
-
         //Skip data submission to DHIS2
-        connected = false;
         if(connected === true && internetReachable === true){
             const response = await axios.post( api_url, payload,  {
                 headers: {
@@ -251,23 +302,36 @@ class Home extends Component {
             });
 
             const apiResponse = response;
+            console.log(apiResponse);
             const httpStatusCode = apiResponse.data.httpStatusCode; //200
             const httpStatus = apiResponse.data.status; //OK
             const importStatus = apiResponse.data.response.status; //SUCCESS === true
 
             recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
 
-            //Update REALM DB and delete the records
+            this.setState({recorded: recordSubmitted});
+            //Update REALM DB and delete the records, TODO: Add option to autodelete if successful submission
+            const realm = await Realm.open({schema: [ScanSchema]});
+            let updateScan = await realm.objects("Scan").filtered("poe_id==$0", recentScan[0].poe_id);
+            console.log("Before update: ");
+            console.log(updateScan[0]);
+            if(updateScan.length > 0){
+                //Update the Scan record
+                console.log("Updating Submission Status with: "+ recordSubmitted);
+                realm.write(() => {
+                  updateScan[0].submitted = recordSubmitted;
+                });
+            }
 
+            realm.close();
         }
-
-        realm.close();
      }
 
     render() {
-     const { scan, ScanResult, result, decryptedData } = this.state;
+     const { scan, ScanResult, result, decryptedData, checkpoint_exists } = this.state;
      const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app';
 //     console.log(decryptedData);
+     const { navigation} = this.props;
 
      const scanInfo = (decryptedData !== null)?decryptedData.split("\n"): null;
      const displayScan = (scanInfo !== null)? scanInfo[0]+"\n"+ scanInfo[1] +"\n"+ scanInfo[2] +"\n"+ scanInfo[3]+"\n"+ scanInfo[4]: null;
@@ -279,58 +343,78 @@ class Home extends Component {
        {type: "nationalid", displayName: "National ID"},
        {type: "drivingpermit", displayName: "Driving Permit"},
      ];
+
+//     realm.close();
 //     console.log(options);
+      console.log("EXISTING CHECKPOINTS: "+checkpoint_exists);
      return (
-         <View style={styles.scrollViewStyle}>
+
+            <SafeAreaView style={{ flex: 1, justifyContent: 'space-between', alignItems: 'center' }} horizontal={false} alwaysBounceVertical={'true'} >
+             <ScrollView style={{marginHorizontal: 0}}>
              <Fragment>
                  {!scan && !ScanResult &&
-                     <View style={{ flex: 1, alignItems: 'center', height: '100%', paddingTop: 40,textAlignVertical: 'top'}}>
+                     <View style={{ flex: 1, alignItems: 'center', height: '100%',textAlignVertical: 'top'}}>
                         <Text style={styles.textTitle}>Welcome To COVID-19 TravelCheck App!</Text>
                         <Text numberOfLines={8} style={styles.descText}>{desccription}</Text>
-                            <TouchableOpacity onPress={this.activeQR} style={styles.buttonTouchable}>
-                                 <Text style={styles.buttonTextStyle}><Icon name="qr-scanner" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 30}}/>  Scan TravelPass</Text>
-                            </TouchableOpacity>
-                            <Text style={styles.textTitle}>Scan other documents</Text>
-                            <Grid style={{padding: 20}}>
-                                <Col>
-                                    <Card>
-                                        <CardItem>
-                                          <Body style={{alignItems: 'center'}}>
-                                            <FontAwesome5 name={'passport'} style={{fontSize: 30}}/>
-                                          </Body>
-                                        </CardItem>
-                                        <CardItem footer style={{textAlign: 'center', backgroundColor: '#ccc'}}>
-                                          <Text>Passport</Text>
-                                        </CardItem>
-                                     </Card>
-
-                                </Col>
-                                <Col>
-                                    <Card>
-                                         <CardItem style={{alignItems: 'center'}}>
-                                           <Body style={{alignItems: 'center'}}>
-                                             <FontAwesome5 name={'id-card'} style={{fontSize: 30}} light/>
-                                           </Body>
-                                         </CardItem>
-                                         <CardItem footer style={{alignItems: 'center', backgroundColor: '#ccc'}}>
-                                           <Text style={{alignItems: 'center'}}>ID Card</Text>
-                                         </CardItem>
-                                      </Card>
-                                </Col>
-                                <Col>
-                                    <Card>
-                                           <CardItem >
+                        <View style={{ flex: 1, alignItems: 'center', marginTop: 1 }}>
+                              {
+                                (checkpoint_exists === true)?
+                                    <TouchableOpacity onPress={this.activeQR} style={styles.buttonTouchable}>
+                                         <Text style={styles.buttonTextStyle}><Icon name="qr-scanner" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 10}}/>  Scan TravelPass</Text>
+                                    </TouchableOpacity> :
+                                    <TouchableOpacity onPress={() => navigation.navigate('AddCheckpoint',{screen: 'AddCheckpoint'})} style={styles.buttonTouchable}>
+                                           <Text style={styles.buttonTextStyle}>
+                                                <Icon name="pin" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 10}}/>  Add Checkpoint
+                                           </Text>
+                                    </TouchableOpacity>
+                              }
+                        </View>
+                        <Text>Scan other documents</Text>
+                        <Grid style={{padding: 10}}>
+                            <Col>
+                                <TouchableOpacity onPress={() => navigation.navigate('ScanPassport',{screen: 'ScanPassport'})}>
+                                       <Card>
+                                           <CardItem>
                                              <Body style={{alignItems: 'center'}}>
-                                               <FontAwesome5 name={'plane'} style={{fontSize: 30}} light/>
+                                               <FontAwesome5 name={'passport'} style={{fontSize: 20}}/>
                                              </Body>
                                            </CardItem>
-                                            <CardItem footer style={{textAlign: 'center', backgroundColor: '#ccc'}}>
-                                              <Text>Flights</Text>
-                                            </CardItem>
-                                      </Card>
-                                </Col>
-                            </Grid>
-                     </View>
+                                           <CardItem footer style={{textAlign: 'center', backgroundColor: '#ccc'}}>
+                                             <Text>Passport</Text>
+                                           </CardItem>
+                                        </Card>
+                                </TouchableOpacity>
+                            </Col>
+                            <Col>
+                                <TouchableOpacity onPress={() => navigation.navigate('ScanIdentityCard',{screen: 'ScanIdentityCard'})}>
+                                <Card>
+                                     <CardItem style={{alignItems: 'center'}}>
+                                       <Body style={{alignItems: 'center'}}>
+                                         <FontAwesome5 name={'id-card'} style={{fontSize: 20}} light/>
+                                       </Body>
+                                     </CardItem>
+                                     <CardItem footer style={{alignItems: 'center', backgroundColor: '#ccc'}}>
+                                       <Text style={{alignItems: 'center'}}>ID Card</Text>
+                                     </CardItem>
+                                  </Card>
+                                 </TouchableOpacity>
+                            </Col>
+                            <Col>
+                                <TouchableOpacity onPress={() => navigation.navigate('ScanBoardingPass',{screen: 'ScanBoardingPass'})}>
+                                <Card>
+                                       <CardItem >
+                                         <Body style={{alignItems: 'center'}}>
+                                           <FontAwesome5 name={'plane'} style={{fontSize: 20}} light/>
+                                         </Body>
+                                       </CardItem>
+                                        <CardItem footer style={{textAlign: 'center', backgroundColor: '#ccc'}}>
+                                          <Text>Flights</Text>
+                                        </CardItem>
+                                  </Card>
+                                 </TouchableOpacity>
+                            </Col>
+                        </Grid>
+                 </View>
                  }
                  {ScanResult &&
                      <Fragment>
@@ -346,11 +430,19 @@ class Home extends Component {
                               </Text>
                               <View style={{ flex: 1, alignItems: 'center' }}>
                               {
-                                (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)?<TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
-                                                                        <Text style={styles.buttonTextStyle}>Submit TravelCheck</Text>
-                                                                    </TouchableOpacity> : <Text>The scan record is saved on the phone.</Text>
+                                (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)?
+                                <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
+                                    <Text style={styles.buttonTextStyle}>Submit TravelCheck</Text>
+                                </TouchableOpacity>
+                                : <View>
+                                      <Text>The scan record is saved on the phone.</Text>
+                                      {
+                                          ((this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true) && this.state.recorded === true ) ? <Toast type={'success'} text={'Scan successfully submitted to remote server!'} buttonText={'OK'} />:<Toast type={'warning'} text={'Not submitted to remote server'} buttonText={'OK'} />
+                                      }
+                                </View>
                               }
                               </View>
+
                          </View>
                      </Fragment>
                          }
@@ -367,7 +459,7 @@ class Home extends Component {
 //                                 bottomViewStyle={{display: 'none'}}
                                  fadeIn={false}
                                  bottomContent={
-                                 <View>
+                                 <View style={{marginTop: 60}}>
                                      <TouchableOpacity style={styles.buttonTouchable} onPress={() => this.scanner.reactivate()}>
                                           <Text style={styles.buttonTextStyle}>Refresh Scanner</Text>
                                       </TouchableOpacity>
@@ -376,7 +468,9 @@ class Home extends Component {
                              />
                          }
                      </Fragment>
-                 </View>
+                     </ScrollView>
+                     </SafeAreaView>
+
 
              );
          }

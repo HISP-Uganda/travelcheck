@@ -2,11 +2,11 @@ import React, { Component } from 'react';
 import {View, TouchableOpacity } from 'react-native';
 import { Fab, Icon, Footer, FooterTab, Button, Text } from 'native-base';
 import { createMaterialBottomTabNavigator } from '@react-navigation/material-bottom-tabs';
-import styles from '../styles/styles';
+import styles from '../../styles/styles';
 
 const Tab = createMaterialBottomTabNavigator();
 
-class ScanPassport extends Component {
+class ScanBoardingPass extends Component {
    constructor(props) {
        super(props)
        this.state = {
@@ -18,10 +18,10 @@ class ScanPassport extends Component {
     const { navigation, route } = this.props;
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text>NEW PASSPORT SCAN</Text>
+        <Text>NEW Boarding Pass SCAN</Text>
       </View>
     );
   }
 }
 
-export default ScanPassport;
+export default ScanBoardingPass;

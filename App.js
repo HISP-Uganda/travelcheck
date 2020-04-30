@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
-import {Text} from 'react-native';
-import MainStackNavigator from './AppNavigator'
+import {Text, SafeAreaView, ScrollView} from 'react-native';
+import MainStackNavigator from './AppNavigator';
+import { SafeAreaProvider} from 'react-native-safe-area-context';
 
 //import Scan from './contents/qrscan';
 //import Scans from './contents/scans';

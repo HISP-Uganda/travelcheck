@@ -25,8 +25,11 @@ class Scans extends Component {
                   vehicle: 'string',
                   phone_number: 'string',
                   point_of_entry: 'string',
+                  org_unit: 'string',
                   poe_id: 'string',
                   dhis_url: 'string',
+                  program: 'string',
+                  program_stage: 'string',
                   tei:'string',
                   checkpoint: 'string',
                   latitude: 'string',
@@ -55,6 +58,7 @@ class Scans extends Component {
      const checkscans = this.state.scans;
      const data = Array.from(checkscans);
      const { navigation } = this.props;
+     console.log(data);
 
     return (checkscans !== null) ? (
         <Container>

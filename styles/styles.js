@@ -68,7 +68,9 @@ const styles = {
 
     },
     descText: {
-        padding: 16,
+        padding:2,
+        paddingLeft: 10,
+        paddingRight: 10,
         textAlign: 'justify',
         fontSize: 16
     },
