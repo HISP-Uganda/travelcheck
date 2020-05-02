@@ -40,7 +40,7 @@ export default class App extends Component {
             </Tab>
         </Tabs>
         <Footer style={{height: 30,padding: 2, color: '#FFFFFF', backgroundColor: '#EBF5FB'}}>
-                  <Text style={{color: '#154360'}}>Designed by HISP Uganda</Text>
+                  <Text style={{color: '#154360'}}>Designed by HISP</Text>
         </Footer>
       </Container>
     );
