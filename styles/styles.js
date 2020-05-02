@@ -103,7 +103,7 @@ const styles = {
 
     buttonTouchableSuccess: {
             fontSize: 21,
-            backgroundColor: '#343648',
+            backgroundColor: '#010101',
             marginTop: 20,
             borderRadius: 20,
             width: deviceWidth - 120,
@@ -117,6 +117,12 @@ const styles = {
         fontWeight: 'bold',
         fontSize: 18
     },
+
+    buttonSubmitTextStyle: {
+            color: '#ffd700',
+            fontWeight: 'bold',
+            fontSize: 18
+        },
 
     touchableOpacityStyle: {
        position: 'absolute',

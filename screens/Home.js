@@ -34,10 +34,12 @@ class Home extends Component {
              recentScan: null,
              checkpoint_exists: null,
              checkpoint: null,
-             recorded: null
+             recorded: null,
+             showStatus: null
          };
 
          this.setCheckpointStates();
+
     }
 
     setCheckpointStates = async =()=>{
@@ -62,42 +64,18 @@ class Home extends Component {
           });
     }
 
-    componentDidMount = async () => {
-           const connection = await NetInfo.fetch();
-           this.setState({connection_Status: connection});
-
-           //Store scanned information into the Local DB
-          const CheckpointSchema = {
-               name: 'Checkpoint',
-               properties:
-                   {
-                     name: 'string',
-                     date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                     current: {type: 'bool', default: true}
-                }
-           };
-
-           this._unsubscribe = await this.props.navigation.addListener('focus', () => {
-              Realm.open({
-                schema: [CheckpointSchema]
-              }).then(realm => {
-                const current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
-                const ck_exists = (current_checkpoint.length > 0)? true: false;
-                this.setState({checkpoint_exists: ck_exists});
-                (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
-                this.setState({db: realm});
-                realm.close();
-              });
-            });
+    componentDidMount() {
+        this._unsubscribe = NetInfo.addEventListener(state => {
+          this.setState({connection_Status: state.isConnected})
+        });
       }
 
-    componentWillUnmount = () => {
-         this._unsubscribe();
+    componentWillUnmount() {
+        this._unsubscribe();
     }
 
     onSuccess = async (e) => {
            const check = e.data.substring(0, 4);
-           console.log(e);
            this.setState({
                result: e,
                scan: false,
@@ -119,13 +97,10 @@ class Home extends Component {
             }catch(e){
                 console.log(e.message);
             }
-            console.log("Decrypting Records");
             const passphrase = "COVID-19R35P0N5E-2020";
             let bytes  = await AES.decrypt(this.state.result.data, passphrase);
             const scanData = bytes.toString(Utf8);
-            console.log(scanData);
             const thisScan = scanData.split("\n");
-            console.log(thisScan);
 
             //THE ORDER MUST BE OBSERVED
             const name = thisScan[0].split(":")[1].trim();
@@ -168,11 +143,8 @@ class Home extends Component {
 
             realm = await Realm.open({schema: [ScanSchema]});
             let existScan = await realm.objects("Scan").filtered("poe_id==$0", poe_id);
-
-            console.log("Record Found. "+existScan.length);
             if(existScan.length > 0){
                 //Update the Scan record
-                console.log("Record Found. Updating");
                 const written = realm.write(() => {
                   existScan[0].poe_id = poe_id;
                   existScan[0].scan_date = checkDate;
@@ -192,7 +164,6 @@ class Home extends Component {
                 });
                 this.setState({scanExists: true});
                 myscan = JSON.stringify(existScan);
-                console.log("MYSCAN: "+myscan);
 
             }else{
                 //Continue saving to Phone
@@ -219,7 +190,6 @@ class Home extends Component {
                   });
                   this.setState({scanExists: false});
                   myscan = JSON.stringify(scanned);
-                  console.log("NO EXISTING MYSCAN: "+myscan)
                 });
             }
 
@@ -244,14 +214,12 @@ class Home extends Component {
     }
 
     submitCheckRecord = async () => {
-        const {recentScan, scanExists} = await this.state;
+        const {recentScan, scanExists, connection_Status} = await this.state;
         const { navigation} = this.props;
-        console.log("RECENT XX "+scanExists);
         let payload;
         let api_url;
 
         if(scanExists){
-            console.log("Existing Scan: "+ JSON.stringify(recentScan));
             payload = {
                   "program": `${recentScan[0].program}`,
                   "trackedEntityInstance":`${recentScan[0].tei}`,
@@ -281,7 +249,6 @@ class Home extends Component {
                 }
                 api_url = `${recentScan[0].dhis_url}/api/events`;
         }else{
-         console.log("New Scan: "+ JSON.stringify(recentScan));
          payload = {
            "program": `${recentScan.program}`,
            "trackedEntityInstance":`${recentScan.tei}`,
@@ -337,29 +304,19 @@ class Home extends Component {
            }
        };
 
-        //TODO: Load from Realm DB
-
-        console.log("PAYLOAD: "+JSON.stringify(payload))
-//        return false;
         this.setState({
             loading: true,
         })
 
         //TODO: Load from App settings the DHIS2 instance.
-
-        console.log("API URL: "+api_url);
         const username = "Socaya";
         const password = "Dhis@2020";
         const token = base64.encode(`${username}:${password}`);
-//        console.log(token);
 
         const status = this.state.connection_Status;
-
-        const connected = status.isConnected;
-        const internetReachable = status.isInternetReachable;
         let recordSubmitted  = false;
-        //Skip data submission to DHIS2
-        if(connected === true && internetReachable === true){
+        //Skip data submission to DHIS2 if not connected
+        if(connection_Status === true){
             const response = await axios.post( api_url, payload,  {
                 headers: {
                  'Authorization': `Basic ${token}`
@@ -367,7 +324,6 @@ class Home extends Component {
             });
 
             const apiResponse = response;
-            console.log(apiResponse);
             const httpStatusCode = apiResponse.data.httpStatusCode; //200
             const httpStatus = apiResponse.data.status; //OK
             const importStatus = apiResponse.data.response.status; //SUCCESS === true
@@ -375,43 +331,28 @@ class Home extends Component {
             recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
 
             this.setState({recorded: recordSubmitted});
+            (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
+
             //Update REALM DB and delete the records, TODO: Add option to autodelete if successful submission
             const realm = await Realm.open({schema: [ScanSchema]});
             let updateScan = await realm.objects("Scan").filtered("poe_id==$0", (scanExists === true)?recentScan[0].poe_id:recentScan.poe_id);
-            console.log("Before update: ");
-            console.log(updateScan[0]);
             if(updateScan.length > 0){
                 //Update the Scan record
-                console.log("Updating Submission Status with: "+ recordSubmitted);
                 realm.write(() => {
                   updateScan[0].submitted = recordSubmitted;
                 });
             }
-
             realm.close();
         }
      }
 
     render() {
-     const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists } = this.state;
+     const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists, connection_Status, recorded, showStatus } = this.state;
      const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app';
-//     console.log(decryptedData);
      const { navigation} = this.props;
-
      const scanInfo = (decryptedData !== null)?decryptedData.split("\n"): null;
      const displayScan = (scanInfo !== null)? scanInfo[0]+"\n"+ scanInfo[1] +"\n"+ scanInfo[2] +"\n"+ scanInfo[3]+"\n"+ scanInfo[4]: null;
-     const options = [
-       {type: "travelpass",displayName: "TravelPass"},
-       {type: "passport", displayName: "Passport"},
-       {type: "boardingpass", displayName: "Boarding Pass"},
-       {type: "airticket", displayName: "Air Ticket"},
-       {type: "nationalid", displayName: "National ID"},
-       {type: "drivingpermit", displayName: "Driving Permit"},
-     ];
 
-//     realm.close();
-//     console.log(options);
-      console.log("EXISTING CHECKPOINTS: "+checkpoint_exists);
      return (
 
             <SafeAreaView style={{ flex: 1, justifyContent: 'space-between', alignItems: 'center' }} horizontal={false} alwaysBounceVertical={'true'} >
@@ -489,25 +430,31 @@ class Home extends Component {
                              <TouchableOpacity onPress={this.scanAgain} style={styles.buttonTouchable}>
                                  <Text style={styles.buttonTextStyle}>Repeat TravelPass Scan</Text>
                              </TouchableOpacity>
-                              <FontAwesome5 name={'wifi'} style={{fontSize: 30, marginTop: 30, color: (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? '#ffd700': '#dddddd'}} light/>
-                              <Text style={{fontSize: 20, textAlign: 'center', margin: 10, color: (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)? '#28B463': '#D35400'}}>
-                                    { (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true) ? "You are Online.": "You are offline."}
+                              <FontAwesome5 name={'wifi'} style={{fontSize: 30, marginTop: 30, color: (connection_Status === true) ? '#ffd700': '#dddddd'}} light/>
+                              <Text style={{fontSize: 20, textAlign: 'center', margin: 10, color: (connection_Status === true)? '#28B463': '#D35400'}}>
+                                    { (connection_Status === true) ? "You are Online.": "You are offline."}
                               </Text>
                               <View style={{ flex: 1, alignItems: 'center' }}>
                               {
-                                (this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true)?
-                                <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
-                                    <Text style={styles.buttonTextStyle}>Submit TravelCheck</Text>
-                                </TouchableOpacity>
+                                (connection_Status === true)?
+                                <View>
+                                    <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
+                                        <Text style={styles.buttonSubmitTextStyle}>Submit TravelCheck</Text>
+                                    </TouchableOpacity>
+                                    <Text>{recorded}</Text>
+                                </View>
                                 : <View>
                                       <Text>The scan record is saved on the phone.</Text>
-                                      {
-                                          ((this.state.connection_Status.isConnected === true && this.state.connection_Status.isInternetReachable === true) && this.state.recorded === true ) ? <Toast type={'success'} text={'Scan successfully submitted to remote server!'} buttonText={'OK'} />:<Toast type={'warning'} text={'Not submitted to remote server'} buttonText={'OK'} />
-                                      }
                                 </View>
                               }
                               </View>
-
+                              <View style={{ flex: 1, alignItems: 'center' }}>
+                                    {
+                                    (showStatus === true)?<View>
+                                          <Text>{(recorded === true )? "Submitted Successfully": "Scan not submitted."}</Text>
+                                    </View>:<Text></Text>
+                                  }
+                              </View>
                          </View>
                      </Fragment>
                          }

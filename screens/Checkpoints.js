@@ -44,12 +44,6 @@ export default class Checkpoints extends Component {
      const data = Array.from(checkpointscans);
      const { navigation } = this.props;
 
-////    const scans = this.state.realm ? this.state.realm.objects('Scan') : false
-//    const checkscans = this.state.scans;
-//    console.log(checkscans);
-//    console.log(Object.keys(checkscans));
-//    const { navigation } = this.props;
-
     return (
         <Container>
             <Content
@@ -57,7 +51,6 @@ export default class Checkpoints extends Component {
                 <List>
                     {
                         Object.keys(data).map(function(key) {
-                            console.log(key)
                             return <ListItem
                                         key={key}
                                         avatar

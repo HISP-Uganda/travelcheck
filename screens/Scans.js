@@ -58,7 +58,6 @@ class Scans extends Component {
      const checkscans = this.state.scans;
      const data = Array.from(checkscans);
      const { navigation } = this.props;
-     console.log(data);
 
     return (checkscans !== null) ? (
         <Container>

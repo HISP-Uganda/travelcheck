@@ -30,6 +30,8 @@ const getHeaderTitle = (route) => {
       return 'Home'
     case 'Scans':
       return 'Scanned TravelPasses'
+      case 'Stops':
+            return 'All Checkpoints (Stops)'
     case 'Others':
       return 'Other options'
   }

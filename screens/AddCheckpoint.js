@@ -31,17 +31,12 @@ export default class NewPoint extends Component {
         const current = this.state.currentCheckpoint;
         const created = moment().format('YYYY-MM-DD');
 
-//        console.log("Checkpoint Submitted: "+ current);
-
-        //Save in Local DB
-
         let realmck;
         let newCheckpoint = {};
         try{
             realmck = await Realm.open({schema: [this.CheckpointSchema]});
 
             const current_checkpoint = realmck.objects('Checkpoint').filtered('current == true');
-            console.log("TOTAL CURRENT: "+current_checkpoint.length);
 
             if(current_checkpoint.length > 0){
             realmck.write (
@@ -50,8 +45,6 @@ export default class NewPoint extends Component {
                     }
                 )
             }
-            //Disable current checkpoint first
-            //ADD
             realmck.write(() => {
               newCheckpoint = realmck.create('Checkpoint', {
                 name: `${checkpoint}`,
