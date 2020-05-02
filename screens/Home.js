@@ -23,20 +23,44 @@ let realm;
 
 class Home extends Component {
     constructor(props) {
-             super(props);
-             this.state = {
-                 scan: false,
-                 ScanResult: false,
-                 result: null,
-                 realm: null,
-                 connection_Status : null,
-                 decryptedData : null,
-                 recentScan: null,
-                 checkpoint_exists: null,
-                 checkpoint: null,
-                 recorded: null
-             };
-         }
+         super(props);
+         this.state = {
+             scan: false,
+             ScanResult: false,
+             result: null,
+             realm: null,
+             connection_Status : null,
+             decryptedData : null,
+             recentScan: null,
+             checkpoint_exists: null,
+             checkpoint: null,
+             recorded: null
+         };
+
+         this.setCheckpointStates();
+    }
+
+    setCheckpointStates = async =()=>{
+        const CheckpointSchema = {
+           name: 'Checkpoint',
+           properties:
+               {
+                 name: 'string',
+                 date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                 current: {type: 'bool', default: true}
+            }
+         };
+        Realm.open({
+            schema: [CheckpointSchema]
+          }).then(realm => {
+            const current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
+            const ck_exists = (current_checkpoint.length > 0)? true: false;
+            this.setState({checkpoint_exists: ck_exists});
+            (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
+            this.setState({db: realm});
+            realm.close();
+          });
+    }
 
     componentDidMount = async () => {
            const connection = await NetInfo.fetch();
@@ -77,7 +101,8 @@ class Home extends Component {
            this.setState({
                result: e,
                scan: false,
-               ScanResult: true
+               ScanResult: true,
+               scanExists: false
            })
 
            let myscan;
@@ -148,7 +173,7 @@ class Home extends Component {
             if(existScan.length > 0){
                 //Update the Scan record
                 console.log("Record Found. Updating");
-                realm.write(() => {
+                const written = realm.write(() => {
                   existScan[0].poe_id = poe_id;
                   existScan[0].scan_date = checkDate;
                   existScan[0].scan_time = checkTime;
@@ -165,8 +190,9 @@ class Home extends Component {
                   existScan[0].latitude = `${checkPoint.latitude}`;
                   existScan[0].longitude = `${checkPoint.longitude}`;
                 });
+                this.setState({scanExists: true});
                 myscan = JSON.stringify(existScan);
-                console.log(myscan);
+                console.log("MYSCAN: "+myscan);
 
             }else{
                 //Continue saving to Phone
@@ -191,7 +217,9 @@ class Home extends Component {
                     longitude: `${checkPoint.longitude}`,
                     submitted: false,
                   });
+                  this.setState({scanExists: false});
                   myscan = JSON.stringify(scanned);
+                  console.log("NO EXISTING MYSCAN: "+myscan)
                 });
             }
 
@@ -216,10 +244,74 @@ class Home extends Component {
     }
 
     submitCheckRecord = async () => {
-        const {recentScan} = await this.state;
+        const {recentScan, scanExists} = await this.state;
         const { navigation} = this.props;
-        console.log("RECENT XX "+JSON.stringify(recentScan));
-        console.log(recentScan);
+        console.log("RECENT XX "+scanExists);
+        let payload;
+        let api_url;
+
+        if(scanExists){
+            console.log("Existing Scan: "+ JSON.stringify(recentScan));
+            payload = {
+                  "program": `${recentScan[0].program}`,
+                  "trackedEntityInstance":`${recentScan[0].tei}`,
+                  "programStage":`${recentScan[0].program_stage}`,
+                  "orgUnit": `${recentScan[0].org_unit}`,
+                  "eventDate": `${recentScan[0].scan_date}`,
+                  "status": "COMPLETED",
+                  "completedDate": `${recentScan[0].scan_date}`,
+                  "storedBy": "Socaya",
+                  "coordinate": {
+                    "latitude": `${recentScan[0].latitude}`,
+                    "longitude": `${recentScan[0].longitude}`
+                  },
+                  //TODO: Dynamically load DEs from COVID-19 PASS
+                  "dataValues": [
+                    {
+        //              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
+                      "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
+                      "value": `${recentScan[0].checkpoint}`
+                    },
+                    {
+        //              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
+                      "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
+                      "value": `${recentScan[0].scan_time}`
+                    }
+                  ]
+                }
+                api_url = `${recentScan[0].dhis_url}/api/events`;
+        }else{
+         console.log("New Scan: "+ JSON.stringify(recentScan));
+         payload = {
+           "program": `${recentScan.program}`,
+           "trackedEntityInstance":`${recentScan.tei}`,
+           "programStage":`${recentScan.program_stage}`,
+           "orgUnit": `${recentScan.org_unit}`,
+           "eventDate": `${recentScan.scan_date}`,
+           "status": "COMPLETED",
+           "completedDate": `${recentScan.scan_date}`,
+           "storedBy": "Socaya",
+           "coordinate": {
+             "latitude": `${recentScan.latitude}`,
+             "longitude": `${recentScan.longitude}`
+           },
+           //TODO: Dynamically load DEs from COVID-19 PASS
+           "dataValues": [
+             {
+ //              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
+               "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
+               "value": `${recentScan.checkpoint}`
+             },
+             {
+ //              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
+               "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
+               "value": `${recentScan.scan_time}`
+             }
+           ]
+         }
+
+         api_url = `${recentScan.dhis_url}/api/events`;
+       }
 
         const ScanSchema = {
            name: 'Scan',
@@ -246,33 +338,6 @@ class Home extends Component {
        };
 
         //TODO: Load from Realm DB
-        let payload = {
-          "program": `${recentScan[0].program}`,
-          "trackedEntityInstance":`${recentScan[0].tei}`,
-          "programStage":`${recentScan[0].program_stage}`,
-          "orgUnit": `${recentScan[0].org_unit}`,
-          "eventDate": `${recentScan[0].scan_date}`,
-          "status": "COMPLETED",
-          "completedDate": `${recentScan[0].scan_date}`,
-          "storedBy": "Socaya",
-          "coordinate": {
-            "latitude": `${recentScan[0].latitude}`,
-            "longitude": `${recentScan[0].longitude}`
-          },
-          //TODO: Dynamically load DEs from COVID-19 PASS
-          "dataValues": [
-            {
-              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
-//              "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
-              "value": `${recentScan[0].checkpoint}`
-            },
-            {
-              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
-//              "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
-              "value": `${recentScan[0].scan_time}`
-            }
-          ]
-        };
 
         console.log("PAYLOAD: "+JSON.stringify(payload))
 //        return false;
@@ -281,7 +346,7 @@ class Home extends Component {
         })
 
         //TODO: Load from App settings the DHIS2 instance.
-        const api_url = `${recentScan[0].dhis_url}/api/events`;
+
         console.log("API URL: "+api_url);
         const username = "Socaya";
         const password = "Dhis@2020";
@@ -312,7 +377,7 @@ class Home extends Component {
             this.setState({recorded: recordSubmitted});
             //Update REALM DB and delete the records, TODO: Add option to autodelete if successful submission
             const realm = await Realm.open({schema: [ScanSchema]});
-            let updateScan = await realm.objects("Scan").filtered("poe_id==$0", recentScan[0].poe_id);
+            let updateScan = await realm.objects("Scan").filtered("poe_id==$0", (scanExists === true)?recentScan[0].poe_id:recentScan.poe_id);
             console.log("Before update: ");
             console.log(updateScan[0]);
             if(updateScan.length > 0){
@@ -328,7 +393,7 @@ class Home extends Component {
      }
 
     render() {
-     const { scan, ScanResult, result, decryptedData, checkpoint_exists } = this.state;
+     const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists } = this.state;
      const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app';
 //     console.log(decryptedData);
      const { navigation} = this.props;
@@ -369,7 +434,7 @@ class Home extends Component {
                                     </TouchableOpacity>
                               }
                         </View>
-                        <Text>Scan other documents</Text>
+                        <Text style={{marginTop: 30}}>Scan other documents</Text>
                         <Grid style={{padding: 10}}>
                             <Col>
                                 <TouchableOpacity onPress={() => navigation.navigate('ScanPassport',{screen: 'ScanPassport'})}>
