@@ -14,8 +14,35 @@ const styles = {
         fontSize: 18,
         textAlign: 'center',
         padding: 16,
+        color: '#010101',
+    },
+
+    textHeader:{
+        fontWeight: 'bold',
+        fontSize: 16,
+        textAlign: 'left',
+        paddingBottom: 5,
         color: '#010101'
     },
+
+    textDetail:{
+        fontSize: 16,
+        textAlign: 'left',
+        paddingBottom: 5,
+        color: '#D8AB04',
+        textTransform: 'uppercase'
+        },
+
+    detailedTextTitle: {
+        fontSize: 20,
+        textAlign: 'center',
+        alignItems: 'center',
+        padding: 5,
+        color: '#010101',
+        textTransform: 'uppercase',
+        fontWeight: 'bold',
+    },
+
     textTitle1: {
         fontWeight: 'bold',
         fontSize: 18,
@@ -100,10 +127,20 @@ const styles = {
         alignItems: 'center',
         height: 44
     },
+    buttonTouchableDanger: {
+        fontSize: 21,
+        backgroundColor: '#E55437',
+        marginTop: 20,
+        borderRadius: 20,
+        width: deviceWidth - 120,
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: 44
+    },
 
     buttonTouchableSuccess: {
             fontSize: 21,
-            backgroundColor: '#010101',
+            backgroundColor: '#021E3B',
             marginTop: 20,
             borderRadius: 20,
             width: deviceWidth - 120,
@@ -120,7 +157,7 @@ const styles = {
 
     buttonSubmitTextStyle: {
             color: '#ffd700',
-            fontWeight: 'bold',
+            fontWeight: 'normal',
             fontSize: 18
         },
 

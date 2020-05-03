@@ -42,7 +42,7 @@ class Home extends Component {
 
     }
 
-    setCheckpointStates = async =()=>{
+    setCheckpointStates = () =>{
         const CheckpointSchema = {
            name: 'Checkpoint',
            properties:
@@ -61,12 +61,34 @@ class Home extends Component {
             (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
             this.setState({db: realm});
             realm.close();
-          });
+         });
     }
 
     componentDidMount() {
-        this._unsubscribe = NetInfo.addEventListener(state => {
-          this.setState({connection_Status: state.isConnected})
+        const CheckpointSchema = {
+           name: 'Checkpoint',
+           properties:
+               {
+                 name: 'string',
+                 date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                 current: {type: 'bool', default: true}
+            }
+       };
+        this._unsubscribe = this.props.navigation.addListener('focus', () => {
+              Realm.open({
+                schema: [CheckpointSchema]
+              }).then(realm => {
+                const current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
+                const ck_exists = (current_checkpoint.length > 0)? true: false;
+                this.setState({checkpoint_exists: ck_exists});
+                (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
+                this.setState({db: realm});
+                realm.close();
+              });
+
+              NetInfo.addEventListener(state => {
+                this.setState({connection_Status: state.isConnected});
+              });
         });
       }
 
@@ -438,8 +460,8 @@ class Home extends Component {
                               {
                                 (connection_Status === true)?
                                 <View>
-                                    <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess}>
-                                        <Text style={styles.buttonSubmitTextStyle}>Submit TravelCheck</Text>
+                                    <TouchableOpacity onPress={this.submitCheckRecord} style={styles.buttonTouchableSuccess} disabled={(recorded === true )? true: false}>
+                                        <Text style={styles.buttonSubmitTextStyle}><Icon name="sync" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 10, color: '#ffd700'}}/> Submit TravelCheck</Text>
                                     </TouchableOpacity>
                                     <Text>{recorded}</Text>
                                 </View>
