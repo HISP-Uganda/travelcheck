@@ -19,7 +19,7 @@ import { Col, Row, Grid } from "react-native-easy-grid";
 
 //import { SafeAreaView} from 'react-native-safe-area-context';
 
-let realm;
+//let realm;
 
 class Home extends Component {
     constructor(props) {
@@ -28,7 +28,6 @@ class Home extends Component {
              scan: false,
              ScanResult: false,
              result: null,
-             realm: null,
              connection_Status : null,
              decryptedData : null,
              recentScan: null,
@@ -38,31 +37,11 @@ class Home extends Component {
              showStatus: null
          };
 
-         this.setCheckpointStates();
+//         this.setCheckpointStates();
 
     }
 
-    setCheckpointStates = () =>{
-        const CheckpointSchema = {
-           name: 'Checkpoint',
-           properties:
-               {
-                 name: 'string',
-                 date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                 current: {type: 'bool', default: true}
-            }
-         };
-        Realm.open({
-            schema: [CheckpointSchema]
-          }).then(realm => {
-            const current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
-            const ck_exists = (current_checkpoint.length > 0)? true: false;
-            this.setState({checkpoint_exists: ck_exists});
-            (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
-            this.setState({db: realm});
-            realm.close();
-         });
-    }
+
 
     componentDidMount() {
         const CheckpointSchema = {
@@ -77,13 +56,13 @@ class Home extends Component {
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
               Realm.open({
                 schema: [CheckpointSchema]
-              }).then(realm => {
-                const current_checkpoint = realm.objects("Checkpoint").filtered('current==true');
+              }).then(realmDBL => {
+                const current_checkpoint = realmDBL.objects("Checkpoint").filtered('current==true');
                 const ck_exists = (current_checkpoint.length > 0)? true: false;
                 this.setState({checkpoint_exists: ck_exists});
                 (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
-                this.setState({db: realm});
-                realm.close();
+                this.setState({db: realmDBL});
+                realmDBL.close();
               });
 
               NetInfo.addEventListener(state => {
@@ -163,7 +142,7 @@ class Home extends Component {
                }
            };
 
-            realm = await Realm.open({schema: [ScanSchema]});
+            const realm = await Realm.open({schema: [ScanSchema]});
             let existScan = await realm.objects("Scan").filtered("poe_id==$0", poe_id);
             if(existScan.length > 0){
                 //Update the Scan record
@@ -356,15 +335,15 @@ class Home extends Component {
             (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
 
             //Update REALM DB and delete the records, TODO: Add option to autodelete if successful submission
-            const realm = await Realm.open({schema: [ScanSchema]});
-            let updateScan = await realm.objects("Scan").filtered("poe_id==$0", (scanExists === true)?recentScan[0].poe_id:recentScan.poe_id);
+            const realmX = await Realm.open({schema: [ScanSchema]});
+            let updateScan = await realmX.objects("Scan").filtered("poe_id==$0", (scanExists === true)?recentScan[0].poe_id:recentScan.poe_id);
             if(updateScan.length > 0){
                 //Update the Scan record
-                realm.write(() => {
+                realmX.write(() => {
                   updateScan[0].submitted = recordSubmitted;
                 });
             }
-            realm.close();
+            realmX.close();
         }
      }
 
