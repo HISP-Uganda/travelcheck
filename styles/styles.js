@@ -17,6 +17,12 @@ const styles = {
         color: '#010101',
     },
 
+    scanTextTitle: {
+        fontWeight: 'bold',
+        fontSize: 18,
+        color: '#010101',
+    },
+
     textHeader:{
         fontWeight: 'bold',
         fontSize: 16,
@@ -32,6 +38,13 @@ const styles = {
         color: '#D8AB04',
         textTransform: 'uppercase'
         },
+
+         securityTextDetail:{
+                fontSize: 16,
+                textAlign: 'left',
+                paddingBottom: 5,
+                color: '#D8AB04'
+                },
 
     detailedTextTitle: {
         fontSize: 20,
@@ -139,11 +152,11 @@ const styles = {
     },
 
     buttonTouchableSuccess: {
-            fontSize: 21,
+            fontSize: 18,
             backgroundColor: '#021E3B',
             marginTop: 20,
             borderRadius: 20,
-            width: deviceWidth - 120,
+            width: deviceWidth - 160,
             justifyContent: 'center',
             alignItems: 'center',
             height: 44
@@ -171,6 +184,18 @@ const styles = {
        right: 10,
        bottom: 10,
        backgroundColor: '#ffd700'
-    }
+    },
+
+    touchableOpacityTopStyle: {
+           position: 'absolute',
+           width: 50,
+           height: 50,
+           borderRadius: 50,
+           alignItems: 'center',
+           justifyContent: 'center',
+           right: 10,
+           top: 36,
+           backgroundColor: '#ffd700'
+        }
 }
 export default styles;

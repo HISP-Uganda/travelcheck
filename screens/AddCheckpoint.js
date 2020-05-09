@@ -4,23 +4,32 @@ import {TouchableOpacity, Switch} from 'react-native';
 import styles from '../styles/styles'
 import Realm from 'realm';
 import moment from "moment";
+import RNPickerSelect from 'react-native-picker-select';
 
 export default class NewPoint extends Component {
     constructor(props) {
              super(props);
              this.state = {
                  checkpoint: "",
-                 currentCheckpoint: true
+                 currentCheckpoint: true,
+                 scan_point: ""
              };
          }
+
+         onValueChange(value: string) {
+             this.setState({
+               selected: value
+             });
+           }
 
        CheckpointSchema = {
          name: 'Checkpoint',
          properties:
              {
                name: 'string',
+               scan_point: 'string',
                date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-               current: {type: 'bool', default: true}
+               current: {type: 'bool', default: true},
           }
         };
 
@@ -29,6 +38,7 @@ export default class NewPoint extends Component {
 
         const checkpoint = this.state.checkpoint;
         const current = this.state.currentCheckpoint;
+        const scan_point = this.state.scan_point;
         const created = moment().format('YYYY-MM-DD');
 
         let realmck;
@@ -48,6 +58,7 @@ export default class NewPoint extends Component {
             realmck.write(() => {
               newCheckpoint = realmck.create('Checkpoint', {
                 name: `${checkpoint}`,
+                scan_point: `${scan_point}`,
                 date_created: `${created}`,
                 current: current
               });
@@ -66,13 +77,24 @@ export default class NewPoint extends Component {
         return (
             <Content>
                 <View style={{flex: 1}}>
-                    <Text style={styles.textTitle}>Add new Checkpoint here</Text>
+                    <Text style={styles.textTitle}>Add new Scan point here</Text>
                     <Form>
-
-                         <Item stackedLabel>
+                        <Item stackedLabel>
                             <Label>Checkpoint Name</Label>
                             <Input placeholder="Checkpoint Name"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({checkpoint: text}); }} value={this.state.text}/>
                           </Item>
+                          <Label style={{marginLeft: 16, marginBottom: 0}}>Specify scan point</Label>
+                          <RNPickerSelect
+                                      onValueChange={(value) => this.setState({scan_point: value})}
+                                      items={[
+                                          { label: 'Returning Travelers', value: 'default' },
+                                          { label: 'At Entry point', value: 'arrival' },
+                                          { label: 'In the Laboratory', value: 'laboratory' },
+                                          { label: 'At Clearance point', value: 'clearance' },
+                                          { label: 'At Incountry Checkpoint', value: 'checkpoint' },
+                                          { label: 'At Exit point', value: 'exit' },
+                                      ]}
+                                  />
 
                           <ListItem noindent>
                               <Body  >

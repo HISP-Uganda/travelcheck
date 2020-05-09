@@ -4,7 +4,7 @@ import { Card, CardItem, Body,Left, Right, List, ListItem, Thumbnail, Button, Ic
 import styles from '../styles/styles';
 import moment from 'moment';
 
-class Home extends Component {
+class ScanDetails extends Component {
 
   render() {
     const { navigation, route } = this.props;
@@ -80,4 +80,4 @@ class Home extends Component {
   }
 }
 
-export default Home;
+export default ScanDetails;

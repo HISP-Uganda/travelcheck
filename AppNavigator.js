@@ -2,7 +2,7 @@ import React, { Component } from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createMaterialTopTabNavigator } from '@react-navigation/material-top-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import {Icon, Footer, Text} from 'native-base';
+import {Icon, Footer, Text, Root} from 'native-base';
 
 //Screens Available
 import Home from './screens/Home';
@@ -10,11 +10,13 @@ import Scans from './screens/Scans';
 import Details from './screens/Details';
 import Settings from './screens/Settings';
 import AddCheckpoint from './screens/AddCheckpoint';
-import ScanPassport from './screens/documents/ScanPassport';
+import CheckpointDetails from './screens/Checkpoint';
+import SecurityDetails from './screens/details/SecurityDetails';
+import DHIS2Setting from './screens/documents/DHIS2Setting';
 import ScanIdentityCard from './screens/documents/ScanIdentityCard';
 import ScanBoardingPass from './screens/documents/ScanBoardingPass';
 import Checkpoints from './screens/Checkpoints';
-import Routes from './screens/Routes';
+import Security from './screens/Security';
 
 
 const Tab = createMaterialTopTabNavigator();
@@ -31,9 +33,9 @@ const getHeaderTitle = (route) => {
     case 'Scans':
       return 'Scanned TravelPasses'
       case 'Stops':
-            return 'All Checkpoints (Stops)'
-    case 'Others':
-      return 'Other options'
+            return 'All Scan points (Stops)'
+    case 'DHIS2':
+      return 'DHIS2 Settings'
   }
 }
 
@@ -63,7 +65,7 @@ const MainTabNavigator = () => {
         <Tab.Screen name='Home' component={Home} />
         <Tab.Screen name='Scans' component={Scans} />
         <Tab.Screen name='Stops' component={Checkpoints} />
-        <Tab.Screen name='Others' component={Settings} />
+        <Tab.Screen name='DHIS2' component={Settings} />
       </Tab.Navigator>
     )
 }
@@ -101,9 +103,23 @@ const MainStackNavigator = () => {
           })}
         />
         <Stack.Screen
-          name='Settings'
+                  name='CheckpointDetails'
+                  component={CheckpointDetails}
+                  options={({ route }) => ({
+                    title: 'Checkpoint Details'
+                  })}
+                />
+        <Stack.Screen
+              name='SecurityDetails'
+              component={SecurityDetails}
+              options={({ route }) => ({
+                title: 'DHIS2 Security Details'
+              })}
+            />
+        <Stack.Screen
+          name='DHIS2'
           component={Settings}
-          options={{ title: 'Others Options' }}
+          options={{ title: 'DHIS2 Settingss' }}
         />
         <Stack.Screen
           name='AddCheckpoint'
@@ -114,10 +130,10 @@ const MainStackNavigator = () => {
         />
 
         <Stack.Screen
-                  name='ScanPassport'
-                  component={ScanPassport}
+                  name='DHIS2Setting'
+                  component={DHIS2Setting}
                   options={({ route }) => ({
-                      title: 'Scan Passport'
+                      title: 'New DHIS2 Settings'
                     })}
                 />
         <Stack.Screen
@@ -135,10 +151,10 @@ const MainStackNavigator = () => {
                 })}
             />
         <Stack.Screen
-              name='Routes'
-              component={Routes}
+              name='Security'
+              component={Security}
               options={({ route }) => ({
-                  title: 'View Map Routes'
+                  title: 'DHIS2 Access and Security'
                 })}
             />
       </Stack.Navigator>
@@ -149,4 +165,6 @@ const MainStackNavigator = () => {
   )
 }
 
-export default MainStackNavigator
+export default () => <Root>
+   <MainStackNavigator />
+ </Root>;

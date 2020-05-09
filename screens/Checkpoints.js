@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import { Container, Header, Content, List, ListItem, Left, Body, Right, Thumbnail, Text ,Icon} from 'native-base';
+import { Container, Header, Content, List, ListItem, Left, Body, Right, Thumbnail, Text ,Icon, Button} from 'native-base';
 import {View, RefreshControl,TouchableOpacity } from 'react-native';
 import moment from "moment";
 import styles from '../styles/styles';
@@ -14,14 +14,15 @@ export default class Checkpoints extends Component {
 
      componentDidMount = () =>{
          const CheckpointSchema = {
-               name: 'Checkpoint',
-               properties:
-                   {
-                     name: 'string',
-                     date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                     current: {type: 'bool', default: true}
-                }
-              };
+                name: 'Checkpoint',
+                properties:
+                    {
+                      name: 'string',
+                      scan_point: 'string',
+                      date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                      current: {type: 'bool', default: true},
+                 }
+               };
 
          this._unsubscribe = this.props.navigation.addListener('focus', () => {
            Realm.open({
@@ -33,6 +34,30 @@ export default class Checkpoints extends Component {
              realm.close();
            });
          });
+      }
+
+      listIcon = () =>{
+        const icon = "";
+        const scan_point = this.state.scan_point;
+        switch(scan_point){
+            case 'arrival':
+                icon = "eye";
+                break;
+            case 'lab':
+                icon = "";
+                break;
+            case 'clearance':
+                icon = "";
+                break;
+            case 'checkpoint':
+                icon = "";
+                break;
+            case 'exit':
+                icon = "exit";
+                break;
+            default:
+                icon = icon;
+        }
       }
 
       componentWillUnmount = () => {
@@ -51,18 +76,20 @@ export default class Checkpoints extends Component {
                 <List>
                     {
                         Object.keys(data).map(function(key) {
+                            const checkpointDetails = JSON.stringify(data[key]);
                             return <ListItem
                                         key={key}
-                                        avatar
+                                        icon
                                         button={true}
-                                        style={{marginLeft:0, paddingLeft:0}}
+                                        style={{paddingLeft:0, marginTop: 5}}
+                                        onPress={() => navigation.navigate('CheckpointDetails',{screen: 'CheckpointDetails',params: { details: checkpointDetails }})}
                                     >
                                          <Body>
-                                           <Text>{data[key].name}</Text>
-                                           <Text note>{data[key].date_created.toString()}</Text>
+                                           <Text style={{textTransform: 'uppercase', fontSize: 12, fontWeight: 'bold'}}>{data[key].name+" ("+data[key].scan_point+")"}</Text>
+                                           <Text note>{moment(data[key].date_created.toString()).format("dddd MMM Do YYYY")}</Text>
                                          </Body>
                                          <Right style={{alignItems: 'center'}}>
-                                           <Text note>{(data[key].current == true)? "Active": "Inactive"}</Text>
+                                           <Text note>{}</Text>
                                            <Icon name={(data[key].current == true)? "radio-button-on": "radio-button-off"} style={{color:(data[key].current == true)? '#ffd700' : '#AEB6BF', fontSize: 24}}/>
                                          </Right>
                                     </ListItem>

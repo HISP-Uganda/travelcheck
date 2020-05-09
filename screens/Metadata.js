@@ -6,7 +6,7 @@ import styles from '../styles/styles';
 
 const Tab = createMaterialBottomTabNavigator();
 
-class Passports extends Component {
+class Metadata extends Component {
    constructor(props) {
        super(props)
        this.state = {
@@ -19,11 +19,11 @@ class Passports extends Component {
 
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text>SCanned Passports GOES HERE</Text>
+        <Text>METADATA CONFIGURATIONS</Text>
 
         <TouchableOpacity
               activeOpacity={0.7}
-              onPress={() => navigation.navigate('ScanPassport',{screen: 'ScanPassport'})}
+              onPress={() => navigation.navigate('DHIS2Setting',{screen: 'DHIS2Setting'})}
               style={styles.touchableOpacityStyle}>
               <Icon name="add" />
             </TouchableOpacity>
@@ -32,4 +32,4 @@ class Passports extends Component {
   }
 }
 
-export default Passports;
+export default Metadata;

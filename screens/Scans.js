@@ -15,28 +15,32 @@ class Scans extends Component {
 
      componentDidMount = () =>{
         const ScanSchema = {
-            name: 'Scan',
-            properties:
-                {
-                  uuid: 'string',
-                  scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                  scan_time: 'string',
-                  full_name: 'string',
-                  vehicle: 'string',
-                  phone_number: 'string',
-                  point_of_entry: 'string',
-                  org_unit: 'string',
-                  poe_id: 'string',
-                  dhis_url: 'string',
-                  program: 'string',
-                  program_stage: 'string',
-                  tei:'string',
-                  checkpoint: 'string',
-                  latitude: 'string',
-                  longitude: 'string',
-                  submitted: {type: 'bool', default: false}
+             name: 'Scan',
+             properties:
+             {
+               uuid: 'string',
+               scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
+               scan_time: 'string',
+               full_name: 'string',
+               vehicle: 'string',
+               phone_number: 'string',
+               point_of_entry: 'string',
+               org_unit: 'string',
+               poe_id: 'string',
+               dhis_url: 'string',
+               program: 'string',
+               program_stage: 'string',
+               tei:'string',
+               checkpoint: 'string',
+               latitude: 'string',
+               longitude: 'string',
+               sex: 'string',
+               nationality: 'string',
+               dob: 'date',
+               nin_passport: 'string',
+               submitted: {type: 'bool', default: false}
              }
-          };
+         };
 
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
           Realm.open({
