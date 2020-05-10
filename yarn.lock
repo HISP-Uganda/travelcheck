@@ -2783,6 +2783,11 @@ crypto-js@3.1.9-1:
   resolved "https://registry.yarnpkg.com/crypto-js/-/crypto-js-3.1.9-1.tgz#fda19e761fc077e01ffbfdc6e9fdfc59e8806cd8"
   integrity sha1-/aGedh/Ad+Af+/3G6f38WeiAbNg=
 
+crypto-js@^4.0.0:
+  version "4.0.0"
+  resolved "https://registry.yarnpkg.com/crypto-js/-/crypto-js-4.0.0.tgz#2904ab2677a9d042856a2ea2ef80de92e4a36dcc"
+  integrity sha512-bzHZN8Pn+gS7DQA6n+iUmBfl0hO5DJq++QP3U6uTucDtk/0iGpXd/Gg7CGR0p8tJhofJyaKoWBuJI4eAO00BBg==
+
 css-select@^2.1.0:
   version "2.1.0"
   resolved "https://registry.yarnpkg.com/css-select/-/css-select-2.1.0.tgz#6a34653356635934a81baca68d0255432105dbef"
@@ -6942,11 +6947,6 @@ react-native-country-picker-modal@^1.10.0:
     prop-types "15.7.2"
     react-async-hook "3.6.1"
 
-react-native-crypto-js@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/react-native-crypto-js/-/react-native-crypto-js-1.0.0.tgz#e677e022e147f41b35614416c92d655f87e2450a"
-  integrity sha512-FNbLuG/HAdapQoybeZSoes1PWdOj0w242gb+e1R0hicf3Gyj/Mf8M9NaED2AnXVOX01b2FXomwUiw1xP1K+8sA==
-
 react-native-date-picker@^2.7.9:
   version "2.7.9"
   resolved "https://registry.yarnpkg.com/react-native-date-picker/-/react-native-date-picker-2.7.9.tgz#f662d8741a3f78148eccf492d70a1740b035024b"
@@ -7829,6 +7829,13 @@ signal-exit@^3.0.0, signal-exit@^3.0.2:
   version "3.0.3"
   resolved "https://registry.yarnpkg.com/signal-exit/-/signal-exit-3.0.3.tgz#a1410c2edd8f077b08b4e253c8eacfcaf057461c"
   integrity sha512-VUJ49FC8U1OxwZLxIbTTrDvLnf/6TDgxZcK8wxR8zs13xpx7xbG60ndBlhNrFi2EMuFRoeDoJO7wthSLq42EjA==
+
+simple-crypto-js@^2.2.0:
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/simple-crypto-js/-/simple-crypto-js-2.4.0.tgz#43c86d5c4a19df633f1495ab29e6adb81caa48a4"
+  integrity sha512-4rQJEcJ2pOuDL2rRw/gcib4XZTa5m4HejocEL4r5chWVsGv4Mutwc8rKzmxO0F7DWIjIgGG8skFzdEE4q38oNg==
+  dependencies:
+    crypto-js "^4.0.0"
 
 simple-plist@^1.0.0:
   version "1.1.0"

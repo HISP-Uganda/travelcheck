@@ -39,6 +39,8 @@ import Select from 'react-select'
 import RNCountry from "react-native-countries";
 import NumericInput from 'react-native-numeric-input';
 import RNPickerSelect from 'react-native-picker-select';
+//import SimpleCrypto from "simple-crypto-js";
+import SimpleCrypto from "simple-crypto-js"
 //let realm;
 
 const ScanSchema = {
@@ -61,10 +63,10 @@ const ScanSchema = {
      checkpoint: 'string',
      latitude: 'string',
      longitude: 'string',
-     sex: 'string',
-     nationality: 'string',
-     dob: 'date',
-     nin_passport: 'string',
+     sex: {type: 'string',optional: true},
+     nationality: {type: 'string',optional: true},
+     dob: {type: 'date',optional: true},
+     nin_passport: {type: 'string',optional: true},
      submitted: {type: 'bool', default: false}
    }
 };
@@ -472,8 +474,31 @@ class Home extends Component {
         (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
     }
 
+    decryptScan = async (data, encryption)=>{
+        const passphrase = "COVID-19R35P0N5E-2020";
+        let decr;
+        console.log(data);
+        switch(encryption){
+            case 'simple-crypto-js':
+                const appCrypt = await new SimpleCrypto(passphrase);
+                console.log(data);
+                decr = await appCrypt.decrypt(data);
+                break;
+            case 'crypto-js':
+                let bytes  = await AES.decrypt(data, passphrase);
+                decr = bytes.toString(Utf8);
+                break;
+            default: //plain
+                decr = data;
+                break;
+        }
+
+        return decr;
+    }
+
     onSuccess = async (e) => {
            const check = e.data.substring(0, 4);
+           console.log(check);
            this.setState({
                result: e,
                scan: false,
@@ -491,15 +516,44 @@ class Home extends Component {
                       enableHighAccuracy: true,
                       timeout: 15000,
                 });
-
             }catch(e){
                 console.log(e.message);
             }
             const passphrase = "COVID-19R35P0N5E-2020";
-            let bytes  = await AES.decrypt(this.state.result.data, passphrase);
-            const scanData = bytes.toString(Utf8);
-            const thisScan = scanData.split("\n");
 
+
+            const old = true;
+
+            let scanData = this.state.result.data;
+
+//            scanData = await this.decryptScan(this.state.result.data, 'plain');
+
+            try{
+                scanData = await this.decryptScan(this.state.result.data, 'crypto-js');
+
+            }catch(e){
+                try{
+                    scanData = await this.decryptScan(this.state.result.data, 'simple-crypto-js');
+                }catch(e){
+                    console.log(e);
+                }
+            }
+
+//            if(old === true){
+//                console.log("Using old decryptur")
+//                const appCrypt = await new SimpleCrypto(passphrase);
+//                console.log(this.state.result.data);
+//                scanData = await appCrypt.decrypt(`${this.state.result.data}`);
+//                console.log("Decrpyted:\n");
+//                console.log(scanData);
+//            }else{
+//                 let bytes  = await AES.decrypt(this.state.result.data, passphrase);
+//                 scanData = bytes.toString(Utf8);
+//            }
+
+            const thisScan = await scanData.split("\n");
+            console.log("AFTER SPLITTING: "+thisScan);
+            console.log(thisScan);
             //THE ORDER MUST BE OBSERVED
             const name = thisScan[0].split(":")[1].trim();
             const vehicle = thisScan[1].split(":")[1].trim();

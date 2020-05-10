@@ -34,7 +34,6 @@
     "react-native-camera": "^3.24.1",
     "react-native-countries": "^1.0.3",
     "react-native-country-picker-modal": "^1.10.0",
-    "react-native-crypto-js": "^1.0.0",
     "react-native-date-picker": "^2.7.9",
     "react-native-easy-grid": "^0.2.2",
     "react-native-floating-action": "^1.20.0",
@@ -62,6 +61,7 @@
     "react-select-country": "^0.0.15",
     "react-select-country-list": "^2.1.2",
     "realm": "^5.0.3",
+    "simple-crypto-js": "^2.2.0",
     "tesseract.js": "^2.1.1",
     "typescript": "^3.8.3"
   },
