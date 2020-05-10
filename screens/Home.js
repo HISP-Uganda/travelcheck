@@ -474,37 +474,6 @@ class Home extends Component {
         (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
     }
 
-//    decryptScan = (data) => {
-//        const passphrase = "COVID-19R35P0N5E-2020";
-//        try {
-//            let bytes = AES.decrypt(data, passphrase);
-//            const plainText = bytes.toString(Utf8)
-//            if (plainText) {
-//                return plainText;
-//            } else {
-//                const simpleCrypto2 = new SimpleCrypto(passphrase);
-//                const x = simpleCrypto2.decrypt(encrypted);
-//                if (x) {
-//                    return x
-//                } else {
-//                    return data
-//                }
-//            }
-//        } catch (e) {
-//            try {
-//                const simpleCrypto2 = new SimpleCrypto(passphrase);
-//                const x = simpleCrypto2.decrypt(encrypted);
-//                if (x) {
-//                    return x
-//                } else {
-//                    return data
-//                }
-//            } catch (error) {
-//                return data
-//            }
-//        }
-//    }
-
     decryptScan = (data) => {
         const passphrase = "COVID-19R35P0N5E-2020";
         let decrypted;
