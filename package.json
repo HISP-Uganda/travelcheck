@@ -61,7 +61,7 @@
     "react-select-country": "^0.0.15",
     "react-select-country-list": "^2.1.2",
     "realm": "^5.0.3",
-    "simple-crypto-js": "^2.2.0",
+    "simple-crypto-js": "2.2.0",
     "tesseract.js": "^2.1.1",
     "typescript": "^3.8.3"
   },

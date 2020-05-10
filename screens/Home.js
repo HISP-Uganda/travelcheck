@@ -474,26 +474,63 @@ class Home extends Component {
         (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
     }
 
-    decryptScan = async (data, encryption)=>{
+//    decryptScan = (data) => {
+//        const passphrase = "COVID-19R35P0N5E-2020";
+//        try {
+//            let bytes = AES.decrypt(data, passphrase);
+//            const plainText = bytes.toString(Utf8)
+//            if (plainText) {
+//                return plainText;
+//            } else {
+//                const simpleCrypto2 = new SimpleCrypto(passphrase);
+//                const x = simpleCrypto2.decrypt(encrypted);
+//                if (x) {
+//                    return x
+//                } else {
+//                    return data
+//                }
+//            }
+//        } catch (e) {
+//            try {
+//                const simpleCrypto2 = new SimpleCrypto(passphrase);
+//                const x = simpleCrypto2.decrypt(encrypted);
+//                if (x) {
+//                    return x
+//                } else {
+//                    return data
+//                }
+//            } catch (error) {
+//                return data
+//            }
+//        }
+//    }
+
+    decryptScan = (data) => {
         const passphrase = "COVID-19R35P0N5E-2020";
-        let decr;
-        console.log(data);
-        switch(encryption){
-            case 'simple-crypto-js':
-                const appCrypt = await new SimpleCrypto(passphrase);
-                console.log(data);
-                decr = await appCrypt.decrypt(data);
-                break;
-            case 'crypto-js':
-                let bytes  = await AES.decrypt(data, passphrase);
-                decr = bytes.toString(Utf8);
-                break;
-            default: //plain
-                decr = data;
-                break;
+        let decrypted;
+        console.log("RECEIVED DATA: "+data);
+        console.log("USING CRYPTO");
+        let cryptoText;
+        try{
+            const bytes = AES.decrypt(data, passphrase);
+            cryptoText = bytes.toString(Utf8);
+        }catch(e){
+            console.log(e)
         }
 
-        return decr;
+        decrypted = (cryptoText)? cryptoText : this.simpleDecrypt(data, passphrase);
+        console.log("XXXHERE: "+decrypted);
+        return decrypted;
+    }
+
+    simpleDecrypt = (data, passphrase)=>{
+
+        const appCrypt = new SimpleCrypto(passphrase);
+        const simpleText = appCrypt.decrypt(data);
+
+        const x = (simpleText) ? simpleText:data;
+
+        return x;
     }
 
     onSuccess = async (e) => {
@@ -519,56 +556,30 @@ class Home extends Component {
             }catch(e){
                 console.log(e.message);
             }
-            const passphrase = "COVID-19R35P0N5E-2020";
 
+            let scanData = await this.decryptScan(this.state.result.data);
 
-            const old = true;
+            let thisScan = scanData.split("\n");
 
-            let scanData = this.state.result.data;
-
-//            scanData = await this.decryptScan(this.state.result.data, 'plain');
-
-            try{
-                scanData = await this.decryptScan(this.state.result.data, 'crypto-js');
-
-            }catch(e){
-                try{
-                    scanData = await this.decryptScan(this.state.result.data, 'simple-crypto-js');
-                }catch(e){
-                    console.log(e);
-                }
+            if(thisScan === null){
+                thisScan = JSON.stringify(scanData).split("\n");
             }
 
-//            if(old === true){
-//                console.log("Using old decryptur")
-//                const appCrypt = await new SimpleCrypto(passphrase);
-//                console.log(this.state.result.data);
-//                scanData = await appCrypt.decrypt(`${this.state.result.data}`);
-//                console.log("Decrpyted:\n");
-//                console.log(scanData);
-//            }else{
-//                 let bytes  = await AES.decrypt(this.state.result.data, passphrase);
-//                 scanData = bytes.toString(Utf8);
-//            }
-
-            const thisScan = await scanData.split("\n");
-            console.log("AFTER SPLITTING: "+thisScan);
-            console.log(thisScan);
             //THE ORDER MUST BE OBSERVED
-            const name = thisScan[0].split(":")[1].trim();
-            const vehicle = thisScan[1].split(":")[1].trim();
-            const phone = thisScan[2].split(":")[1].trim();
-            const poe = thisScan[3].split(":")[1].trim();
-            const poe_id = thisScan[4].split(":")[1].trim();
-            const base_url = thisScan[5].split(": ")[1].trim();
-            const tei = thisScan[6].split(":")[1].trim();
-            const program = thisScan[7].split(":")[1].trim();
-            const programStage = thisScan[8].split(":")[1].trim();
-            const orgUnit = thisScan[9].split(":")[1].trim();
-            const nationality = thisScan[10].split(":")[1].trim();
-            const dob = thisScan[11].split(": ")[1].trim();
-            const sex = thisScan[12].split(":")[1].trim();
-            const nin_passport = thisScan[13].split(":")[1].trim();
+            const name = (thisScan.length >1)?thisScan[0].split(":")[1].trim(): "";
+            const vehicle = (thisScan.length >2)? thisScan[1].split(":")[1].trim(): "";
+            const phone = (thisScan.length >3)?thisScan[2].split(":")[1].trim(): "";
+            const poe = (thisScan.length >4)?thisScan[3].split(":")[1].trim(): "";
+            const poe_id = (thisScan.length >5)?thisScan[4].split(":")[1].trim(): "";
+            const base_url = (thisScan.length >6)?thisScan[5].split(": ")[1].trim(): "";
+            const tei = (thisScan.length >7)?thisScan[6].split(":")[1].trim(): "";
+            const program = (thisScan.length >8)?thisScan[7].split(":")[1].trim(): "";
+            const programStage = (thisScan.length >9)?thisScan[8].split(":")[1].trim(): "";
+            const orgUnit = (thisScan.length >10)?thisScan[9].split(":")[1].trim(): "";
+            const nationality = (thisScan.length >11)?thisScan[10].split(":")[1].trim(): "";
+            const dob = (thisScan.length >12)?thisScan[11].split(": ")[1].trim(): new Date(1965, 12, 25);
+            const sex = (thisScan.length >13)?thisScan[12].split(":")[1].trim(): "";
+            const nin_passport = (thisScan.length >14)?thisScan[13].split(":")[1].trim(): "";
 
             let current_checkpoint = {};
             const ckpt = JSON.parse(this.state.checkpoint);
@@ -1242,7 +1253,7 @@ class Home extends Component {
                             <View style={{ flex: 1, alignItems: 'center' }}>
                                 {
                                   (connection_Status === true)?
-                                  <View>
+                                  <View style={{paddingBottom: 12}}>
                                       {
                                         (form_id !== "")?<TouchableOpacity onPress={this.submitClearance} style={styles.buttonTouchableSuccess} disabled={((recorded === true) && (form_id !== "") )? true: false}>
                                                                                                    <Text style={styles.buttonSubmitTextStyle}><Icon name="paper-plane" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 10, color: '#ffd700'}}/> Submit TravelCheck</Text>
@@ -1288,7 +1299,6 @@ class Home extends Component {
                                     </TouchableOpacity>
                               }
                         </View>
-                        <Text style={{marginTop: 30}}>Scan other documents</Text>
                  </View>
                  }
                  {ScanResult &&
