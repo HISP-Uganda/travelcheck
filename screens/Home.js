@@ -20,7 +20,6 @@ import { List,
          Right,
          Toast
        } from 'native-base';
-
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import axios from 'axios';
 import base64 from 'react-native-base64'
@@ -34,13 +33,41 @@ import AES from 'crypto-js/aes';
 import Utf8 from 'crypto-js/enc-utf8';
 import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 import { Col, Row, Grid } from "react-native-easy-grid";
-
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { RNCamera } from 'react-native-camera';
 import Select from 'react-select'
 import RNCountry from "react-native-countries";
-import NumericInput from 'react-native-numeric-input'
+import NumericInput from 'react-native-numeric-input';
+import RNPickerSelect from 'react-native-picker-select';
 //let realm;
+
+const ScanSchema = {
+   name: 'Scan',
+   properties:
+   {
+     uuid: 'string',
+     scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
+     scan_time: 'string',
+     full_name: 'string',
+     vehicle: 'string',
+     phone_number: 'string',
+     point_of_entry: 'string',
+     org_unit: 'string',
+     poe_id: 'string',
+     dhis_url: 'string',
+     program: 'string',
+     program_stage: 'string',
+     tei:'string',
+     checkpoint: 'string',
+     latitude: 'string',
+     longitude: 'string',
+     sex: 'string',
+     nationality: 'string',
+     dob: 'date',
+     nin_passport: 'string',
+     submitted: {type: 'bool', default: false}
+   }
+};
 
 class Home extends Component {
     constructor(props) {
@@ -70,26 +97,39 @@ class Home extends Component {
                 type: RNCamera.Constants.Type.back,
              	flashMode: RNCamera.Constants.FlashMode.auto,
              },
+             countries: [
+              { name: "Uganda", code:"UG" },
+              { name: "Kenya", code:"KE" },
+              { name: "Tanzania", code:"TZ" },
+              { name: "Rwanda", code:"RW" },
+              { name: "DRC (Congo)", code:"CD" },
+              { name: "Burundi", code:"BI" },
+              { name: "South Sudan", code:"SS" },
+              { name: "Ethiopia", code:"ET" },
+              { name: "Somalia", code:"SO" }],
              form_id:"",
-             temperature: 37,
+             temperature: 0,
              quarantined: false,
              further_investigation: false,
              in_isolation: false,
              specimen_collected: false,
              cleared_to_travel: false,
-             departureCode: 'KE',
-             destinationCode: 'UG',
-             departure_country: "",
-             destination_country: "",
+             departure_country: "KE",
+             destination_country: "UG",
              address_in_uganda: "",
-             planned_duration: null
-
+             planned_duration: null,
+             truck_number: "",
+             specimen_type: "",
+             case_phone_contact: "",
+             nok_phone_contact:"",
+             nok_name: "",
+             screener_name: "",
+             submit_ok: false
          };
 
 //         this.setCheckpointStates();
 
     }
-
 
     componentDidMount() {
         const CheckpointSchema = {
@@ -102,12 +142,8 @@ class Home extends Component {
                  current: {type: 'bool', default: true},
             }
         };
+        this.setState({recorded: false});
 
-        let countryNamesWithCodes = RNCountry.getCountryNamesWithCodes;
-        countryNamesWithCodes.sort((a, b) => a.name.localeCompare(b.name));
-        this.setState({
-            countryNameListWithCode: countryNamesWithCodes
-        })
 
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
               Realm.open({
@@ -128,12 +164,11 @@ class Home extends Component {
                 this.setState({connection_Status: state.isConnected});
               });
         });
-      }
+    }
 
     componentWillUnmount() {
         this._unsubscribe();
     }
-
 
    getDHIS2 = async(api_endpoint)=>{
        const SecuritySchema = {
@@ -239,39 +274,43 @@ class Home extends Component {
 //        const password = "Dhis@2020";
         console.log("API URL HERE: "+api_url);
         const token = base64.encode(`${username}:${password}`);
-
-        const response = await axios.post( api_url, payload,  {
+        const {data} = await axios.post( api_url, payload,  {
             headers: {
              'Authorization': `Basic ${token}`
            }
         });
 
-        const apiResponse = response;
-        const httpStatusCode = apiResponse.data.httpStatusCode; //200
-        const httpStatus = apiResponse.data.status; //OK
-        const importStatus = apiResponse.data.response.status; //SUCCESS === true
-
-        const recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
-
-        console.log("record Submitted: "+recordSubmitted);
-
-        //TODO: process some response
-        return apiResponse;
+        return data;
     }
 
-    renderFilter = ({value, onChange, onClose}) => (
-      <CustomFilterComponent
-         value={value}
-         onChange={onChange}
-         onClose={onClose}
-       />
-    )
     //Creates a new TEI record in DHIS2
     submitClearance = async ()=>{
-        const {temperature,form_id,recentScan, scanExists, quarantined, recorded, further_investigation,in_isolation,specimen_collected,cleared_to_travel,departure_country,destination_country,planned_duration,address_in_uganda} = this.state;
+        const {
+            temperature,
+            form_id,
+            recentScan,
+            scanExists,
+            quarantined,
+            recorded,
+            further_investigation,
+            in_isolation,
+            specimen_collected,
+            specimen_type,
+            cleared_to_travel,
+            departure_country,
+            destination_country,
+            planned_duration,
+            address_in_uganda,
+            case_phone_contact,
+            nok_name,
+            nok_phone_contact,
+            screener_name,
+            truck_number
+        } = this.state;
 
         const generated = await this.getDHIS2("/api/trackedEntityAttributes/CLzIR1Ye97b/generate");
-        console.log(generated);
+        console.log("Country of Destination: "+destination_country);
+        console.log("Country of Departure: "+departure_country);
 
         const scan = (scanExists === true)? recentScan[0]: recentScan;
 
@@ -287,8 +326,10 @@ class Home extends Component {
         const cleared = convertBoolean2YesNo(cleared_to_travel);
         const quarantined_travellor = convertBoolean2YesNo(quarantined);
 
-        const temperature_measured = (temperature > 0)? "Yes": "No";
+        const case_phone = (case_phone_contact !== "")? case_phone_contact : scan.phone_number;
+        const new_vheicle = (truck_number !== "")? truck_number : scan.vehicle;
 
+        const temperature_measured = (temperature > 0)? "Yes": "No";
 
 
         const tei_payload = {
@@ -310,11 +351,18 @@ class Home extends Component {
                  },
                  {
                      "attribute": "h6aZFN4DLcR", //Vehicle Reg. Num
-                     "value": `${scan.vehicle}`
+                     "value": `${new_vheicle}`
                  },
                  {
-                     "attribute": "E7u9XdW24SP", //Case Phone Contact or Next of Kin contact
-                     "value": `${scan.phone_number}`
+                     "attribute": "E7u9XdW24SP", //Case Phone Contact
+                     "value": `${case_phone}`
+                 },
+                 {
+                     "attribute": "fik9qo8iHeo", // Names of Next of Kin
+                     "value": `${nok_name}`
+                 },{
+                     "attribute": "j6sEr8EcULP", // Next of Kin contact
+                     "value": `${nok_phone_contact}`
                  },
                  {
                      "attribute": "UJiu0P8GvHt", //Date of arrival
@@ -339,6 +387,14 @@ class Home extends Component {
                  {
                      "attribute": "QUrkIanwcHD", //Temperature Taken
                      "value": `${temperature_measured}`
+                 },
+                 {
+                     "attribute": "NuRldDwq0AJ", //Specimen Taken
+                     "value": `${collected}`
+                 },
+                 {
+                     "attribute": "SI7jnNQpEQM", //Specimen Type
+                     "value": `${specimen_type}`
                  },
                  {
                      "attribute": "QhDKRe2QDA7", //Temperature
@@ -371,6 +427,9 @@ class Home extends Component {
                  {
                      "attribute": "g4LJbkM0R24", //Age (years(
                      "value": `${scan.dob}` //TODO: Add Age *Years ion QR
+                 },{
+                     "attribute": "TU0Jteb9H7F", //COVID Screeners names
+                     "value": `${screener_name}` //TODO: Add Age *Years ion QR
                  },
                  {
                      "attribute": "FZzQbW8AWVd", //Sex
@@ -386,20 +445,31 @@ class Home extends Component {
                 }
             ]
         }
-
+        console.log("PAYLOAD BEFORE CALL")
         console.log(tei_payload);
 
         const response = await this.postDHIS2(tei_payload, 'tei');
-        const apiResponse = response;
-        const httpStatusCode = apiResponse.data.httpStatusCode; //200
-        const httpStatus = apiResponse.data.status; //OK
-        const importStatus = apiResponse.data.response.status; //SUCCESS === true
+        console.log(response)
+        const httpStatusCode = response.httpStatusCode; //200
+        const httpStatus = response.status; //OK
+        const importStatus = response.response.status; //SUCCESS === true
 
         const recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
         this.setState({recorded: recordSubmitted});
 
-        (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
+        //Realm DB UPDATES. TODO: complete task below
 
+//        const realm = await Realm.open({schema: [ScanSchema]});
+//        let existScan = await realm.objects("Scan").filtered("poe_id==$0", poe_id);
+//
+//        if(existScan.length > 0){
+//            //Update the Scan record
+//            const written = realm.write(() => {
+//            existScan[0].submitted = true;
+//            }
+//        }
+
+        (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
     }
 
     onSuccess = async (e) => {
@@ -413,8 +483,8 @@ class Home extends Component {
 
            let myscan;
 
-            const checkDate = moment().format('YYYY-MM-DD');
-            const checkTime = moment().format('HH:mm')
+            const checkDate = await moment().format("YYYY-MM-DD");
+            const checkTime = await moment().format("HH:mm");
             let checkPoint = {};
             try{
                  checkPoint = await GetLocation.getCurrentPosition({
@@ -430,7 +500,6 @@ class Home extends Component {
             const scanData = bytes.toString(Utf8);
             const thisScan = scanData.split("\n");
 
-
             //THE ORDER MUST BE OBSERVED
             const name = thisScan[0].split(":")[1].trim();
             const vehicle = thisScan[1].split(":")[1].trim();
@@ -443,43 +512,17 @@ class Home extends Component {
             const programStage = thisScan[8].split(":")[1].trim();
             const orgUnit = thisScan[9].split(":")[1].trim();
             const nationality = thisScan[10].split(":")[1].trim();
-            const dob = thisScan[11].split(":")[1].trim();
+            const dob = thisScan[11].split(": ")[1].trim();
             const sex = thisScan[12].split(":")[1].trim();
             const nin_passport = thisScan[13].split(":")[1].trim();
 
             let current_checkpoint = {};
             const ckpt = JSON.parse(this.state.checkpoint);
             const checkPointName = (ckpt !== undefined) ? ckpt[0].name : "Checkpoint Unavailable";
-            const ScanSchema = {
-               name: 'Scan',
-               properties:
-               {
-                 uuid: 'string',
-                 scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                 scan_time: 'string',
-                 full_name: 'string',
-                 vehicle: 'string',
-                 phone_number: 'string',
-                 point_of_entry: 'string',
-                 org_unit: 'string',
-                 poe_id: 'string',
-                 dhis_url: 'string',
-                 program: 'string',
-                 program_stage: 'string',
-                 tei:'string',
-                 checkpoint: 'string',
-                 latitude: 'string',
-                 longitude: 'string',
-                 sex: 'string',
-                 nationality: 'string',
-                 dob: 'date',
-                 nin_passport: 'string',
-                 submitted: {type: 'bool', default: false}
-               }
-           };
 
             const realm = await Realm.open({schema: [ScanSchema]});
             let existScan = await realm.objects("Scan").filtered("poe_id==$0", poe_id);
+
             if(existScan.length > 0){
                 //Update the Scan record
                 const written = realm.write(() => {
@@ -508,11 +551,12 @@ class Home extends Component {
 
             }else{
                 //Continue saving to Phone
+                console.log("NOT FOUND");
                 let scanned;
                 realm.write(() => {
                     scanned = realm.create('Scan', {
                     uuid: uuid.v4(),
-                    scan_date: `${checkDate}`,
+                    scan_date: new Date(),
                     scan_time: `${checkTime}`,
                     full_name: `${name}`,
                     vehicle: `${vehicle}`,
@@ -526,7 +570,7 @@ class Home extends Component {
                     tei:`${tei}`,
                     sex:`${sex}`,
                     nationality:`${nationality}`,
-                    dob:`${dob}`,
+                    dob:dob,
                     nin_passport:`${nin_passport}`,
                     checkpoint: `${checkPointName}`,
                     latitude: `${checkPoint.latitude}`,
@@ -542,18 +586,41 @@ class Home extends Component {
                 decryptedData: scanData,
                 recentScan: JSON.parse(myscan)
             })
+            console.log(myscan);
             realm.close();
        }
 
     activeQR = () => {
-           this.setState({
-               scan: true
-           })
+       this.setState({
+           scan: true,
+           recorded: false
+       })
     }
     scanAgain = () => {
            this.setState({
                scan: true,
-               ScanResult: false
+               ScanResult: false,
+               showStatus: false,
+               form_id:"",
+               temperature: 0,
+               quarantined: false,
+               further_investigation: false,
+               in_isolation: false,
+               specimen_collected: false,
+               cleared_to_travel: false,
+               departureCode: 'KE',
+               estinationCode: 'UG',
+               departure_country: "",
+               destination_country: "",
+               address_in_uganda: "",
+               planned_duration: null,
+               specimen_type: "",
+               case_phone_contact: "",
+               nok_phone_contact:"",
+               nok_name: "",
+               screener_name: "",
+               truck_number: "",
+               recorded: false
            })
     }
 
@@ -624,34 +691,6 @@ class Home extends Component {
          api_url = `${recentScan.dhis_url}/api/events`;
        }
 
-        const ScanSchema = {
-           name: 'Scan',
-           properties:
-           {
-             uuid: 'string',
-             scan_date: {type: 'date', default: moment().format('YYYY-MM-DD')},
-             scan_time: 'string',
-             full_name: 'string',
-             vehicle: 'string',
-             phone_number: 'string',
-             point_of_entry: 'string',
-             org_unit: 'string',
-             poe_id: 'string',
-             dhis_url: 'string',
-             program: 'string',
-             program_stage: 'string',
-             tei:'string',
-             checkpoint: 'string',
-             latitude: 'string',
-             longitude: 'string',
-             sex: 'string',
-             nationality: 'string',
-             dob: 'date',
-             nin_passport: 'string',
-             submitted: {type: 'bool', default: false}
-           }
-       };
-
         this.setState({
             loading: true,
         })
@@ -695,16 +734,13 @@ class Home extends Component {
      }
 
     renderForm = (scan_point) => {
-        const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists, connection_Status, recorded, showStatus,countries, current_date, nasal_swab, oral_swab, blood, departure_country, destination_country } = this.state;
+        const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists, form_id, connection_Status, recorded, showStatus,countries, current_date, submit_ok, nasal_swab, oral_swab, blood, departure_country, destination_country } = this.state;
         const scanInfo = (decryptedData !== null)?decryptedData.split("\n"): null;
         const displayScan = (scanInfo !== null)? scanInfo[0]+"\n"+ scanInfo[1] +"\n"+ scanInfo[2] +"\n"+ scanInfo[3]+"\n"+ scanInfo[4]: null;
 
+        console.log(displayScan);
 
         const { navigation} = this.props;
-
-        const showDatePicker = () => {
-            this.setState({date_picker_visible: true});
-        };
 
         const toggleIsolation = (value) => {
             this.setState({in_isolation: value})
@@ -729,13 +765,6 @@ class Home extends Component {
 
         const hideDatePicker = () => {
             this.setState({date_picker_visible: false});
-        };
-
-        const handleConfirm = (date) => {
-
-            this.setState({selected_date: date})
-            console.warn("New DATE Selected: "+ this.state.selected_date);
-            hideDatePicker();
         };
 
         switch(scan_point){
@@ -999,22 +1028,26 @@ class Home extends Component {
                                  width: '100%' }}>
                                   <Text style={styles.scanTextTitle}>Required information!</Text>
                                   <Form >
-                                        <Item stackedLabel style={{marginLeft: 0 }}>
-                                             <Label>Form ID </Label>
-                                             <Input placeholder="Enter Form ID"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({form_id: text}); }} value={this.state.form_id}/>
+                                        <Item stackedLabel style={{marginLeft: 0 }} error={(form_id === "")? true: false}>
+                                             <Label>Form ID {
+                                                            (form_id === "")? <Text note style={{color: 'red'}}>Required</Text>:null
+                                                         }
+                                             </Label>
+                                             <Input placeholder="Enter Form ID"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({form_id: text}); (this.state.form_id !== "")? this.setState({submit_ok: true}):this.setState({submit_ok: false}); }} value={this.state.form_id}/>
+
                                         </Item>
                                         <Item stackedLabel style={{marginLeft: 0 }}>
                                             <Label>Country of Departure </Label>
                                             <Picker
-                                                selectedValue={this.state.departureCode}
+                                                selectedValue={this.state.departure_country}
                                                 style={{eight: 50, width: '100%'}}
                                                 onValueChange={
                                                     (itemValue, itemIndex) => {
+                                                        console.log("NEW DEPARTURE: "+itemValue);
                                                         this.setState({departure_country: itemValue});
-                                                        this.setState({departureCode: itemValue});
                                                     }}
                                                  >
-                                                {this.state.countryNameListWithCode.map((val) => {
+                                                {this.state.countries.map((val) => {
                                                     return <Picker.Item key={'country-item-' + val.code} label={val.name} value={val.code}/>
                                                 })}
                                             </Picker>
@@ -1022,22 +1055,38 @@ class Home extends Component {
                                         <Item stackedLabel style={{marginLeft: 0 }}>
                                          <Label>Country of Destination </Label>
                                          <Picker
-                                             selectedValue={this.state.destinationCode}
+                                             selectedValue={this.state.destination_country}
                                              style={{eight: 50, width: '100%'}}
                                              onValueChange={
                                                  (itemValue, itemIndex) => {
+                                                     console.log("NEW DESTINATION: "+itemValue);
                                                      this.setState({destination_country: itemValue});
-                                                     this.setState({destinationCode: itemValue});
                                                  }}
                                               >
-                                             {this.state.countryNameListWithCode.map((val) => {
+                                             {this.state.countries.map((val) => {
                                                  return <Picker.Item key={'country-item-' + val.code} label={val.name} value={val.code}/>
                                              })}
                                          </Picker>
                                         </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                             <Label>Truck Registration Number </Label>
+                                             <Input placeholder="Truck Registration Number"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({truck_number: text}); }} value={this.state.truck_number}/>
+                                        </Item>
                                          <Item stackedLabel style={{marginLeft: 0 }}>
                                              <Label>Address in Uganda </Label>
                                              <Input placeholder="Address in Uganda"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({address_in_uganda: text}); }} value={this.state.address_in_uganda}/>
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                             <Label>Phone contact </Label>
+                                             <Input placeholder="Case phone contact"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({case_phone_contact: text}); }} value={this.state.case_phone_contact} />
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                             <Label>Name of Next of Kin </Label>
+                                             <Input placeholder="Name of Next of Kin"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({nok_name: text}); }} value={this.state.nok_name} />
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                             <Label>Next of Kin Contact</Label>
+                                             <Input placeholder="Next of Kin Contact"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({nok_phone_contact: text}); }} value={this.state.nok_phone_contact} />
                                         </Item>
                                         <Item stackedLabel style={{marginLeft: 0 }}>
                                              <Label>Duration of Stay </Label>
@@ -1071,6 +1120,22 @@ class Home extends Component {
                                                        value = {this.state.specimen_collected} />
                                            </Right>
                                          </ListItem>
+
+                                            {
+                                                (this.state.specimen_collected === true)?<Item stackedLabel style={{marginLeft: 0, paddingBottom: 10 }}>
+                                                    <Label style={{marginLeft: 0, marginBottom: 0}}>Specimen type</Label>
+                                                       <RNPickerSelect
+                                                             onValueChange={(value) => this.setState({specimen_type: value})}
+                                                             style={{color: '#010101'}}
+                                                             items={[
+                                                                 { label: 'Oropharyngeal Swab', value: 'Oropharengeal Swab' },
+                                                                 { label: 'Nasopharyngeal Swab', value: 'Nasopharyngeal Swab' },
+                                                                 { label: 'Blood', value: 'Blood' }
+                                                             ]}
+                                                       />
+                                                    </Item>:null
+                                            }
+
                                       <ListItem noindent style={{marginLeft: 0}}>
                                         <Body  >
                                           <Text style={{marginLeft: 0}}>Need for Isolation</Text>
@@ -1113,6 +1178,10 @@ class Home extends Component {
                                                           value = {this.state.cleared_to_travel}/>
                                               </Right>
                                             </ListItem>
+                                            <Item stackedLabel style={{marginLeft: 0 }}>
+                                                 <Label>Name of Screener</Label>
+                                                 <Input placeholder="Name of Screener" multiline={true} numberOfLines={2} placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({screener_name: text}); }} value={this.state.screener_name} />
+                                            </Item>
 
                                   </Form>
                               </View>
@@ -1120,10 +1189,11 @@ class Home extends Component {
                                 {
                                   (connection_Status === true)?
                                   <View>
-                                      <TouchableOpacity onPress={this.submitClearance} style={styles.buttonTouchableSuccess} disabled={(recorded === true )? true: false}>
-                                          <Text style={styles.buttonSubmitTextStyle}><Icon name="paper-plane" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 10, color: '#ffd700'}}/> Submit TravelCheck</Text>
-                                      </TouchableOpacity>
-                                      <Text>{recorded}</Text>
+                                      {
+                                        (form_id !== "")?<TouchableOpacity onPress={this.submitClearance} style={styles.buttonTouchableSuccess} disabled={((recorded === true) && (form_id !== "") )? true: false}>
+                                                                                                   <Text style={styles.buttonSubmitTextStyle}><Icon name="paper-plane" style={{fontSize: 18, textAlignVertical: 'center', marginTop: 10, color: '#ffd700'}}/> Submit TravelCheck</Text>
+                                                                                               </TouchableOpacity>: <Text style={{color: 'red'}}>Form ID is Missing</Text>
+                                      }
                                   </View>
                                   : <View>
 

@@ -86,7 +86,7 @@ export default class Checkpoints extends Component {
                                     >
                                          <Body>
                                            <Text style={{textTransform: 'uppercase', fontSize: 12, fontWeight: 'bold'}}>{data[key].name+" ("+data[key].scan_point+")"}</Text>
-                                           <Text note>{moment(data[key].date_created.toString()).format("dddd MMM Do YYYY")}</Text>
+                                           <Text note>{moment(data[key].date_created).format("dddd MMM Do YYYY")}</Text>
                                          </Body>
                                          <Right style={{alignItems: 'center'}}>
                                            <Text note>{}</Text>
