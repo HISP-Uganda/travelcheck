@@ -13,9 +13,11 @@ import AddCheckpoint from './screens/AddCheckpoint';
 import CheckpointDetails from './screens/Checkpoint';
 import SecurityDetails from './screens/details/SecurityDetails';
 import DHIS2Setting from './screens/documents/DHIS2Setting';
+import Metadata from './screens/forms/Metadata';
 import ScanIdentityCard from './screens/documents/ScanIdentityCard';
 import ScanBoardingPass from './screens/documents/ScanBoardingPass';
 import Checkpoints from './screens/Checkpoints';
+import Mappings from './screens/lists/Mappings';
 import Security from './screens/Security';
 
 
@@ -136,6 +138,22 @@ const MainStackNavigator = () => {
                       title: 'New DHIS2 Settings'
                     })}
                 />
+        <Stack.Screen
+                  name='Metadata'
+                  component={Metadata}
+                  options={({ route }) => ({
+                      title: 'DHIS2 Metadata Settings'
+                    })}
+                />
+
+         <Stack.Screen
+              name='Mappings'
+              component={Mappings}
+              options={({ route }) => ({
+                  title: 'DHIS2 Mappings'
+                })}
+            />
+
         <Stack.Screen
               name='ScanIdentityCard'
               component={ScanIdentityCard}

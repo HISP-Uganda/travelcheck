@@ -31,7 +31,7 @@ class DHIS2Setting extends Component {
              }
            };
 
-         saveSecurity = async () =>{
+    saveSecurity = async () =>{
            const {navigation} = this.props;
 
            const instance = this.state.instance;

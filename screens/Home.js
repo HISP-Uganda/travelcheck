@@ -22,7 +22,7 @@ import { List,
        } from 'native-base';
 import QRCodeScanner from 'react-native-qrcode-scanner';
 import axios from 'axios';
-import base64 from 'react-native-base64'
+import base64 from 'react-native-base64';
 import moment from "moment";
 import GetLocation from 'react-native-get-location';
 import styles from '../styles/styles';
@@ -40,7 +40,8 @@ import RNCountry from "react-native-countries";
 import NumericInput from 'react-native-numeric-input';
 import RNPickerSelect from 'react-native-picker-select';
 //import SimpleCrypto from "simple-crypto-js";
-import SimpleCrypto from "simple-crypto-js"
+import SimpleCrypto from "simple-crypto-js";
+import {flatten, isEmpty} from 'lodash';
 //let realm;
 
 const ScanSchema = {
@@ -70,6 +71,27 @@ const ScanSchema = {
      submitted: {type: 'bool', default: false}
    }
 };
+
+const MappingSchema = {
+    name: 'Mapping',
+    properties:{
+          organisation: 'string',
+          program: 'string',
+          date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+          current: {type: 'bool', default: true},
+    }
+};
+
+const CheckpointSchema = {
+           name: 'Checkpoint',
+           properties:
+               {
+                 name: 'string',
+                 scan_point: 'string',
+                 date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+                 current: {type: 'bool', default: true},
+            }
+        };
 
 class Home extends Component {
     constructor(props) {
@@ -126,6 +148,8 @@ class Home extends Component {
              nok_phone_contact:"",
              nok_name: "",
              screener_name: "",
+             mapped_unit: "",
+             mapped_prog: "",
              submit_ok: false
          };
 
@@ -133,23 +157,16 @@ class Home extends Component {
 
     }
 
-    componentDidMount() {
-        const CheckpointSchema = {
-           name: 'Checkpoint',
-           properties:
-               {
-                 name: 'string',
-                 scan_point: 'string',
-                 date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                 current: {type: 'bool', default: true},
-            }
-        };
+    componentDidMount = async() => {
         this.setState({recorded: false});
+        //sets states for current mapping
+//        await this.getCurrentMapping();
 
+//        console.log(this.state.mapped_orgUnit);
 
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
               Realm.open({
-                schema: [CheckpointSchema]
+                schema: [CheckpointSchema, MappingSchema]
               }).then(realmDBL => {
                 const current_checkpoint = realmDBL.objects("Checkpoint").filtered('current==true');
                 const ck_exists = (current_checkpoint.length > 0)? true: false;
@@ -157,6 +174,17 @@ class Home extends Component {
                 const scan_point = (current_checkpoint.length > 0)? current_checkpoint[0].scan_point: null;
                 this.setState({scan_point: scan_point});
                 this.setState({checkpoint_exists: ck_exists});
+                //Sets Mappings
+                console.log("Getting Mapping");
+                const current_mapping = realmDBL.objects("Mapping").filtered('current==true');
+                const mapping = Object.values(JSON.parse(JSON.stringify(current_mapping)));
+                if(current_mapping.length> 0){
+                    this.setState({mapped_unit: Object.values(mapping)[0].organisation});
+                    this.setState({mapped_prog: Object.values(mapping)[0].program});
+                }
+
+                const mp_exists = (current_mapping.length > 0)? true: false;
+                this.setState({current_mappings: current_mapping});
                 (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
                 this.setState({db: realmDBL});
                 realmDBL.close();
@@ -307,16 +335,18 @@ class Home extends Component {
             nok_name,
             nok_phone_contact,
             screener_name,
-            truck_number
+            truck_number,
+            current_mappings
         } = this.state;
 
-        const generated = await this.getDHIS2("/api/trackedEntityAttributes/CLzIR1Ye97b/generate");
-        console.log("Country of Destination: "+destination_country);
-        console.log("Country of Departure: "+departure_country);
+        console.log("Retrieving remote POE ID");
+        const generated = await this.getDHIS2("api/trackedEntityAttributes/CLzIR1Ye97b/generate");
 
         const scan = (scanExists === true)? recentScan[0]: recentScan;
 
         const poe_id = generated.value;
+
+        console.log("POE ID Recieved: "+poe_id);
 
         const convertBoolean2YesNo = (variable) => {
             return (variable === true)? "Yes": "No";
@@ -332,12 +362,13 @@ class Home extends Component {
         const new_vheicle = (truck_number !== "")? truck_number : scan.vehicle;
 
         const temperature_measured = (temperature > 0)? "Yes": "No";
-
+        const mapped_ou = this.state.mapped_unit;
+        const mapped_pg = this.state.mapped_prog;
 
         const tei_payload = {
             "trackedEntityType": "KWN8FUfvO5G", //TODO. ADd as part of DHIS2 Metadata configuration and mapping
             "trackedEntity": `${scan.tei}`,
-            "orgUnit": `${scan.org_unit}`,
+            "orgUnit": `${mapped_ou}`,
             "attributes":[
                  {
                      "attribute": "CLzIR1Ye97b", //POE_ID
@@ -440,8 +471,8 @@ class Home extends Component {
             ],
             "enrollments": [
                 {
-                     "orgUnit": `${scan.org_unit}`,
-                     "program": `${scan.program}`,
+                     "orgUnit": `${mapped_ou}`,
+                     "program": `${mapped_pg}`,
                      "enrollmentDate": `${moment(scan.scan_date).format("YYYY-MM-DD")}`,
                      "incidentDate": `${moment(scan.scan_date).format("YYYY-MM-DD")}`
                 }

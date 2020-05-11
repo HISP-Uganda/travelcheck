@@ -9,7 +9,7 @@ import FontAwesome5 from 'react-native-vector-icons/FontAwesome5';
 
 //import Checkpoints from './Checkpoints';
 //import AddCheckpoint from './AddCheckpoint';
-import Metadata from './Metadata';
+import Mappings from './lists/Mappings';
 import Security from './Security';
 //import ScanPassport from './ScanPassport';
 //import Checkpoints from './Checkpoints';
@@ -36,11 +36,19 @@ class Settings extends Component {
     return (
       <View style={{ flex: 1}}>
         <Tab.Navigator
-            initialRouteName="Metadata"
+            initialRouteName="Security"
             activeColor="#ffd700"
             inactiveColor="#3e2465"
             barStyle={{ backgroundColor: '#FFFFFF', paddingBottom: 0}}>
-                <Tab.Screen name="Metadata" component={Metadata}
+                <Tab.Screen name="Security" component={Security}
+                                      options={{
+                                        tabBarLabel: 'Security & Access',
+                                        tabBarIcon: ({ color }) => (
+                                          <Icon name="lock" style={{fontSize: 20}} />
+                                        ),
+                                      }}
+                                    />
+                <Tab.Screen name="Mappings" component={Mappings}
                     options={{
                       tabBarLabel: 'DHIS2 Metadata',
                       tabBarIcon: ({ color }) => (
@@ -48,14 +56,7 @@ class Settings extends Component {
                       ),
                     }}
                   />
-                  <Tab.Screen name="Security" component={Security}
-                      options={{
-                        tabBarLabel: 'Security & Access',
-                        tabBarIcon: ({ color }) => (
-                          <Icon name="lock" style={{fontSize: 20}} />
-                        ),
-                      }}
-                    />
+
         </Tab.Navigator>
       </View>
     );
