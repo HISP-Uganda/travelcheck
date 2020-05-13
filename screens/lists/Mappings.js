@@ -44,8 +44,6 @@ export default class Mappings extends Component {
      const data = Array.from(mappingsA);
      const { navigation } = this.props;
 
-     console.log(data);
-
     return (
         <Container>
             <Content

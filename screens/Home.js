@@ -42,6 +42,8 @@ import RNPickerSelect from 'react-native-picker-select';
 //import SimpleCrypto from "simple-crypto-js";
 import SimpleCrypto from "simple-crypto-js";
 import {flatten, isEmpty} from 'lodash';
+import ModalFilterPicker from 'react-native-modal-filter-picker'
+import fullCountries from '../api/countries.json';
 //let realm;
 
 const ScanSchema = {
@@ -131,6 +133,7 @@ class Home extends Component {
               { name: "South Sudan", code:"SS" },
               { name: "Ethiopia", code:"ET" },
               { name: "Somalia", code:"SO" }],
+             allcountries:[],
              form_id:"",
              temperature: 0,
              quarantined: false,
@@ -146,6 +149,16 @@ class Home extends Component {
              specimen_type: "",
              case_phone_contact: "",
              nok_phone_contact:"",
+             nationality:"",
+             nationalityName:"",
+             nationalityVisible: false,
+             nin_passport_number:"",
+             full_name:"",
+             gender: [
+                {name: "Male", value: "Male"},
+                {name: "Female", value: "Female"}
+             ],
+             sex:"",
              nok_name: "",
              screener_name: "",
              mapped_unit: "",
@@ -157,12 +170,39 @@ class Home extends Component {
 
     }
 
+    onShowNationality = () => {
+        this.setState({ nationalityVisible: true });
+      }
+
+      onSelectNationality = (nationality) => {
+        console.log("SELECTED: "+nationality.key)
+        this.setState({
+          nationality: nationality.key,
+          nationalityName: nationality.label,
+          nationalityVisible: false
+        })
+      }
+
+      onCancelNationality = () => {
+        this.setState({
+          nationalityVisible: false
+        });
+      }
+
+
     componentDidMount = async() => {
         this.setState({recorded: false});
         //sets states for current mapping
 //        await this.getCurrentMapping();
 
 //        console.log(this.state.mapped_orgUnit);
+        let allcountries = await RNCountry.getCountryNamesWithCodes;
+        allcountries.sort((a, b) => a.name.localeCompare(b.name));
+
+        this.setState({
+             allcountries:allcountries
+        });
+
 
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
               Realm.open({
@@ -333,6 +373,10 @@ class Home extends Component {
             address_in_uganda,
             case_phone_contact,
             nok_name,
+            nationality,
+            sex,
+            full_name,
+            nin_passport_number,
             nok_phone_contact,
             screener_name,
             truck_number,
@@ -380,7 +424,7 @@ class Home extends Component {
                  },
                  {
                      "attribute": "sB1IHYu2xQT", //FullNames
-                     "value": `${scan.full_name}`
+                     "value": `${full_name}`
                  },
                  {
                      "attribute": "h6aZFN4DLcR", //Vehicle Reg. Num
@@ -451,11 +495,11 @@ class Home extends Component {
                  },
                  {
                      "attribute": "oUqWGeHjj5C", //NIN/Passport
-                     "value": `${scan.nin_passport}` //TODO. Add Passport on QRCode
+                     "value": `${nin_passport_number}`
                  },
                  {
                      "attribute": "XvETY1aTxuB", //Nationality
-                     "value": `${scan.nationality}` //TODO: Add Nationality ion QR
+                     "value": `${nationality}` //TODO: Add Nationality ion QR
                  },
                  {
                      "attribute": "g4LJbkM0R24", //Age (years(
@@ -466,15 +510,15 @@ class Home extends Component {
                  },
                  {
                      "attribute": "FZzQbW8AWVd", //Sex
-                     "value": `${scan.sex}` //TODO: Add Age *Years ion QR
+                     "value": `${sex}` //TODO: Add Age *Years ion QR
                  }
             ],
             "enrollments": [
                 {
                      "orgUnit": `${mapped_ou}`,
                      "program": `${mapped_pg}`,
-                     "enrollmentDate": `${moment(scan.scan_date).format("YYYY-MM-DD")}`,
-                     "incidentDate": `${moment(scan.scan_date).format("YYYY-MM-DD")}`
+                     "enrollmentDate": `${moment().format("YYYY-MM-DD")}`,
+                     "incidentDate": `${moment().format("YYYY-MM-DD")}`
                 }
             ]
         }
@@ -565,21 +609,32 @@ class Home extends Component {
                 thisScan = JSON.stringify(scanData).split("\n");
             }
 
+            console.log(thisScan);
+
             //THE ORDER MUST BE OBSERVED
-            const name = (thisScan.length >1)?thisScan[0].split(":")[1].trim(): "";
-            const vehicle = (thisScan.length >2)? thisScan[1].split(":")[1].trim(): "";
-            const phone = (thisScan.length >3)?thisScan[2].split(":")[1].trim(): "";
-            const poe = (thisScan.length >4)?thisScan[3].split(":")[1].trim(): "";
-            const poe_id = (thisScan.length >5)?thisScan[4].split(":")[1].trim(): "";
-            const base_url = (thisScan.length >6)?thisScan[5].split(": ")[1].trim(): "";
-            const tei = (thisScan.length >7)?thisScan[6].split(":")[1].trim(): "";
-            const program = (thisScan.length >8)?thisScan[7].split(":")[1].trim(): "";
-            const programStage = (thisScan.length >9)?thisScan[8].split(":")[1].trim(): "";
-            const orgUnit = (thisScan.length >10)?thisScan[9].split(":")[1].trim(): "";
-            const nationality = (thisScan.length >11)?thisScan[10].split(":")[1].trim(): "";
-            const dob = (thisScan.length >12)?thisScan[11].split(": ")[1].trim(): new Date(1965, 12, 25);
-            const sex = (thisScan.length >13)?thisScan[12].split(":")[1].trim(): "";
-            const nin_passport = (thisScan.length >14)?thisScan[13].split(":")[1].trim(): "";
+            const name = (thisScan.length >=1)?thisScan[0].split(":")[1].trim(): "";
+            const vehicle = (thisScan.length >=2)? thisScan[1].split(":")[1].trim(): "";
+            const phone = (thisScan.length >=3)?thisScan[2].split(":")[1].trim(): "";
+            const poe = (thisScan.length >=4)?thisScan[3].split(":")[1].trim(): "";
+            const poe_id = (thisScan.length >=5)?thisScan[4].split(":")[1].trim(): "";
+            const base_url = (thisScan.length >=6)?thisScan[5].split(": ")[1].trim(): "";
+            const tei = (thisScan.length >=7)?thisScan[6].split(":")[1].trim(): "";
+            const program = (thisScan.length >=8)?thisScan[7].split(":")[1].trim(): "";
+            const programStage = (thisScan.length >=9)?thisScan[8].split(":")[1].trim(): "";
+            const orgUnit = (thisScan.length >=10)?thisScan[9].split(":")[1].trim(): "";
+            const nationality = (thisScan.length >=11)?thisScan[10].split(":")[1].trim(): "";
+            const dob = (thisScan.length >=12)?thisScan[11].split(": ")[1].trim(): new Date(1965, 12, 25);
+            const sex = (thisScan.length >=13)?thisScan[12].split(":")[1].trim(): "";
+            const nin_passport = (thisScan.length >=14)?thisScan[13].split(":")[1].trim(): "";
+
+            //Set states for prefilling forms
+            this.setState({
+               case_phone_contact: phone,
+               nationality: nationality,
+               sex: sex,
+               full_name:name,
+               nin_passport_number: nin_passport
+            });
 
             let current_checkpoint = {};
             const ckpt = JSON.parse(this.state.checkpoint);
@@ -799,7 +854,7 @@ class Home extends Component {
      }
 
     renderForm = (scan_point) => {
-        const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists, form_id, connection_Status, recorded, showStatus,countries, current_date, submit_ok, nasal_swab, oral_swab, blood, departure_country, destination_country } = this.state;
+        const { scan, ScanResult, result, decryptedData, checkpoint_exists,nationalityName, scanExists, form_id, connection_Status, recorded, showStatus,countries, current_date, submit_ok, nasal_swab, oral_swab, blood, departure_country, destination_country,full_name,nin_passport_number,nationalityVisible } = this.state;
         const scanInfo = (decryptedData !== null)?decryptedData.split("\n"): null;
         const displayScan = (scanInfo !== null)? scanInfo[0]+"\n"+ scanInfo[1] +"\n"+ scanInfo[2] +"\n"+ scanInfo[3]+"\n"+ scanInfo[4]: null;
 
@@ -1102,6 +1157,35 @@ class Home extends Component {
 
                                         </Item>
                                         <Item stackedLabel style={{marginLeft: 0 }}>
+                                             <Label>Full Names </Label>
+                                             <Input placeholder="Full Names"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({full_name: text}); }} value={this.state.full_name}/>
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                            <Label>Sex</Label>
+                                            <Picker
+                                                selectedValue={this.state.sex}
+                                                style={{eight: 50, width: '100%'}}
+                                                onValueChange={
+                                                    (itemValue, itemIndex) => {
+                                                        this.setState({sex: itemValue});
+                                                    }}
+                                                 >
+                                                {this.state.gender.map((val) => {
+                                                    return <Picker.Item key={'country-item-' + val.value} label={val.name} value={val.value}/>
+                                                })}
+                                            </Picker>
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                            <Label>Nationality  - {nationalityName}</Label>
+                                            <Input placeholder="Full Names"  placeholderTextColor="#E0E1ED"  onFocus={this.onShowNationality}   onChangeText={(text) => {this.setState({nationality: text}); }} value={this.state.nationality}/>
+                                            <ModalFilterPicker
+                                                  visible={nationalityVisible}
+                                                  onSelect={this.onSelectNationality}
+                                                  onCancel={this.onCancelNationality}
+                                                  options={fullCountries}
+                                                />
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
                                             <Label>Country of Departure </Label>
                                             <Picker
                                                 selectedValue={this.state.departure_country}
@@ -1132,6 +1216,10 @@ class Home extends Component {
                                                  return <Picker.Item key={'country-item-' + val.code} label={val.name} value={val.code}/>
                                              })}
                                          </Picker>
+                                        </Item>
+                                        <Item stackedLabel style={{marginLeft: 0 }}>
+                                             <Label>NIN/Passport Number </Label>
+                                             <Input placeholder="NIN/Passport Number"  placeholderTextColor="#E0E1ED" onChangeText={(text) => {this.setState({nin_passport_number: text}); }} value={this.state.nin_passport_number}/>
                                         </Item>
                                         <Item stackedLabel style={{marginLeft: 0 }}>
                                              <Label>Truck Registration Number </Label>
@@ -1277,6 +1365,7 @@ class Home extends Component {
      const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists, connection_Status, recorded, showStatus, scan_point, current_date,departure_country } = this.state;
      const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app';
      const { navigation} = this.props;
+
      return (
 
             <SafeAreaView style={{ flex: 1, justifyContent: 'space-between',}} horizontal={false} alwaysBounceVertical={'true'} >

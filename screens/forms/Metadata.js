@@ -38,6 +38,7 @@ const ProgramSchema = {
     properties:{
           id: 'string',
           name: 'string',
+          organisationUnits: 'OrganisationUnit[]',
           date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
           current: {type: 'bool', default: false},
     }
@@ -77,6 +78,68 @@ class Metadata extends Component {
        return data;
    }
 
+   processMetadata = async()=>{
+       let programs;
+
+       let realm = await Realm.open({schema: [SecuritySchema, OrganisationUnitSchema, ProgramSchema]});
+       const dhis2 = realm.objects('Security').filtered('current == true');
+
+       if(!isEmpty(dhis2)){
+            const user = dhis2[0].username;
+            const pass = dhis2[0].password;
+            const url = dhis2[0].url;
+            const token = base64.encode(`${user}:${pass}`);
+            console.log(token);
+
+            const pgs = realm.objects('Program');
+
+            if(isEmpty(pgs)){
+                //Create programs in Android
+                console.log("NO PROGRAMS");
+                const program_endpoint = `${url}/api/programs.json?fields=id,name,organisationUnits[id,name]&paging=false`;
+                console.log("Tryingto access "+program_endpoint);
+                const response = await this.getDHIS2(program_endpoint,token);
+                console.log(response);
+                const dhis2_programs = response.programs;
+                console.log("creating new programs")
+
+                realm.write(() => {
+                     dhis2_programs.forEach((program)=>{
+                         const prog_orgunits =  program.organisationUnits;
+                         let pg = realm.create('Program', {
+                           id: `${program.id}`,
+                           name: `${program.name}`,
+                           organisationUnits: []
+                         });
+                         //Process all related orgUnits for the program
+                         prog_orgunits.map((orgUnit) =>{
+                            pg.organisationUnits.push({name: orgUnit.name, id: orgUnit.id});
+                         });
+                     });
+                 });
+
+                 //get and set State on programs now.
+                 const local_programs = realm.objects('Program');
+                 const pp = JSON.parse(JSON.stringify(local_programs));
+                 this.setState({programs: pp});
+                 console.log(pp);
+                 programs = pp;
+            }else{
+                //JSON Parse and set state
+                console.log("PROGRAMS FOUND");
+                const pp = await JSON.parse(JSON.stringify(pgs));
+                this.setState({programs: pp});
+                programs = pp;
+            }
+
+       }else{
+            this.setState({programs: false}); //No current DHIS2 settings. Requires adding
+       }
+       realm.close();
+
+       return programs;
+   }
+
    processData = async () =>{
       let organisations;
 
@@ -95,9 +158,6 @@ class Metadata extends Component {
 
           const ouu = JSON.parse(JSON.stringify(os));
           console.log(Object.values(ouu));
-
-          console.log("OU UP");
-
 
          if(isEmpty(os)){
              console.log("FOUND NO ORGANISATION UNIT LOCALLY");
@@ -181,7 +241,7 @@ class Metadata extends Component {
    }
 
   componentDidMount = async ()=>{
-     await this.processData();
+     await this.processMetadata();
   }
 
   saveMapping = async () =>{
@@ -226,11 +286,22 @@ class Metadata extends Component {
 
   render() {
     const { navigation } = this.props;
+    const {programs, program} = this.state;
+//    const ou = this.state.orgUnits;
+//    const pg = this.state.programs;
+    console.log("ORGUNIT FOR SELECTED PROGRAM");
+    console.log(JSON.parse(JSON.stringify(programs)));
 
-    const ou = this.state.orgUnits;
-    const pg = this.state.programs;
-
-    console.log(this.state.organisation);
+//    this.setState({orgUnits: selectedOrgUnits});
+    let orgUnits = {};
+     if(!isEmpty(programs)){
+         const myPrograms = Object.values(programs);
+         myPrograms.forEach((prog)=>{
+            if(this.state.program === prog.id){
+               orgUnits = prog.organisationUnits;
+            }
+         })
+     }
 
     return (
          <Content>
@@ -239,40 +310,46 @@ class Metadata extends Component {
 
                 {
 
-                    (!isEmpty(ou))?  <Form>
-                          <Item stackedLabel >
-                           <Label>DHIS2 Organisation Units</Label>
-                           <Picker
-                               selectedValue={this.state.organisation}
-                               style={{height: 50, width: '100%'}}
-                               onValueChange={
-                                   (itemValue, itemIndex) => {
-                                       console.log(itemValue);
-                                       this.setState({organisation: itemValue});
-                                   }}
-                                >
-                                    <Picker.Item key={2} label={'--Select Orgnisation Unit--'} value={''}/>
-                               {Object.values(ou).map((val) => {
-                                   return <Picker.Item key={val.id} label={val.name} value={val.id}/>
-                               })}
-                           </Picker>
-                          </Item>
+                    (programs !== false) ?  <Form>
                           <Item stackedLabel>
-                             <Label>Program</Label>
-                             <Picker
-                                 selectedValue={this.state.program}
-                                 style={{height: 50, width: '100%'}}
-                                 onValueChange={
-                                     (itemValue, itemIndex) => {
-                                         this.setState({program: itemValue});
-                                     }}
-                                  >
-                                  <Picker.Item key={1} label={'--Select Program --'} value={''}/>
-                                 {Object.values(pg).map((program) => {
-                                     return <Picker.Item key={program.id} label={program.name} value={program.id}/>
-                                 })}
-                             </Picker>
-                          </Item>
+                               <Label>Program</Label>
+                               <Picker
+                                   selectedValue={this.state.program}
+                                   style={{height: 50, width: '100%'}}
+                                   onValueChange={
+                                       (itemValue, itemIndex) => {
+                                           this.setState({program: itemValue});
+                                       }}
+                                    >
+                                    <Picker.Item key={1} label={'--Select Program --'} value={''}/>
+                                   {Object.values(programs).map((program) => {
+                                       return <Picker.Item key={program.id} label={program.name} value={program.id}/>
+                                   })}
+                               </Picker>
+                            </Item>
+                            {
+                                (!isEmpty(orgUnits))?  <Item stackedLabel>
+                                     <Label>Organisation Unit</Label>
+                                     <Picker
+                                         selectedValue={this.state.organisation}
+                                         style={{height: 50, width: '100%'}}
+                                         onValueChange={
+                                             (itemValue, itemIndex) => {
+                                                 this.setState({organisation: itemValue});
+                                             }}
+                                          >
+                                          <Picker.Item key={1} label={'--Select Organisation Unit --'} value={''}/>
+                                         {
+                                          Object.values(orgUnits).map((ou) => {
+                                             return <Picker.Item key={ou.id} label={ou.name} value={ou.id}/>
+                                         })
+
+                                        }
+                                     </Picker>
+                                  </Item> : <Text>SELECT PROGRAM PROCEED</Text>
+                            }
+
+
                           <ListItem noindent>
                             <Body  >
                               <Text style={{marginLeft: 0}}>Current Mapping</Text>
