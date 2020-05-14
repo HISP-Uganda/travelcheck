@@ -21,6 +21,7 @@
     "@react-navigation/native": "^5.1.6",
     "@react-navigation/stack": "^5.2.13",
     "axios": "^0.19.2",
+    "buffer": "^5.6.0",
     "crypto-js": "3.1.9-1",
     "lodash": "^4.17.15",
     "minimist": "^1.2.3",
@@ -62,7 +63,7 @@
     "react-select": "^3.1.0",
     "react-select-country": "^0.0.15",
     "react-select-country-list": "^2.1.2",
-    "realm": "^5.0.3",
+    "realm": "^5.0.5",
     "simple-crypto-js": "2.2.0",
     "tesseract.js": "^2.1.1",
     "typescript": "^3.8.3"
