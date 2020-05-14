@@ -29,6 +29,20 @@ const ScanSchema = {
      nationality: {type: 'string',optional: true},
      dob: {type: 'date',optional: true},
      nin_passport: {type: 'string',optional: true},
+     form_id: {type: 'string',optional: true},
+     departure: {type: 'string',optional: true},
+     destination: {type: 'string',optional: true},
+     address:{type: 'string',optional: true},
+     duration: {type: 'string',optional: true},
+     nok_name: {type: 'string',optional: true},
+     nok_contact: {type: 'string',optional: true},
+     temperature: {type: 'string',optional: true},
+     cleared: {type: 'bool', default: false},
+     specimen_collected: {type: 'bool', default: false},
+     specimen_type: {type: 'string',optional: true},
+     isolated: {type: 'bool', default: false},
+     investigation: {type: 'bool', default: false},
+     quarantined: {type: 'bool', default: false},
      submitted: {type: 'bool', default: false}
    }
 };

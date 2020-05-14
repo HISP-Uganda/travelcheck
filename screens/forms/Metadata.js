@@ -346,7 +346,7 @@ class Metadata extends Component {
 
                                         }
                                      </Picker>
-                                  </Item> : <Text>SELECT PROGRAM PROCEED</Text>
+                                  </Item> : <Text>SELECT PROGRAM & PROCEED</Text>
                             }
 
 

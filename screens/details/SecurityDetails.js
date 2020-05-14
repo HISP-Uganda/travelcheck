@@ -51,8 +51,6 @@ class SecurityDetails extends Component {
                            <Text note numberOfLines={1} style={styles.securityTextDetail}>{security_details.url}</Text>
                            <Text>Username</Text>
                            <Text note numberOfLines={1} style={styles.securityTextDetail}>{security_details.username}</Text>
-                           <Text>Password</Text>
-                           <Text note numberOfLines={1} secureTextEntry={true} style={styles.securityTextDetail}>{security_details.password}</Text>
                            <Text>Status</Text>
                            <Text note numberOfLines={1} style={styles.securityTextDetail}>{(security_details.current === true)? "Active": "Inactive"}</Text>
                        </View>
