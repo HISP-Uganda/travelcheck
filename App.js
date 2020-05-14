@@ -1,7 +1,6 @@
-import React, { Component } from 'react';
-import {Text, SafeAreaView, ScrollView} from 'react-native';
+import React, {Component} from 'react';
 import MainStackNavigator from './AppNavigator';
-import { SafeAreaProvider} from 'react-native-safe-area-context';
+import {SafeAreaProvider} from 'react-native-safe-area-context';
 
 //import Scan from './contents/qrscan';
 //import Scans from './contents/scans';
@@ -10,8 +9,6 @@ import { SafeAreaProvider} from 'react-native-safe-area-context';
 
 export default class App extends Component {
   render() {
-    return (
-        <MainStackNavigator />
-    )
+    return <MainStackNavigator />;
   }
 }
