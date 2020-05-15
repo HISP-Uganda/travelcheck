@@ -43,6 +43,7 @@ const ScanSchema = {
      isolated: {type: 'bool', default: false},
      investigation: {type: 'bool', default: false},
      quarantined: {type: 'bool', default: false},
+     screener_name: {type: 'string', optional: true},
      submitted: {type: 'bool', default: false}
    }
 };
