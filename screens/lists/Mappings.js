@@ -17,7 +17,11 @@ export default class Mappings extends Component {
              name: 'Mapping',
              properties:{
                    organisation: 'string',
+                   organisation_name: 'string',
                    program: 'string',
+                   program_name: 'string',
+                   program_stage: 'string',
+                   program_stage_name: 'string',
                    date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
                    current: {type: 'bool', default: true},
              }
@@ -60,7 +64,7 @@ export default class Mappings extends Component {
                                         onPress={() => navigation.navigate('MappingDetails',{screen: 'MappingDetails',params: { details: mappingDetails }})}
                                     >
                                          <Body>
-                                           <Text style={{textTransform: 'uppercase', fontSize: 12, fontWeight: 'bold'}}>{data[key].program+" ("+data[key].organisation+")"}</Text>
+                                           <Text style={{textTransform: 'uppercase', fontSize: 12, fontWeight: 'bold'}}>{data[key].program_name+" ("+data[key].organisation_name+")"}</Text>
                                            <Text note>{moment(data[key].date_created).format("dddd MMM Do YYYY")}</Text>
                                          </Body>
                                          <Right style={{alignItems: 'center'}}>
