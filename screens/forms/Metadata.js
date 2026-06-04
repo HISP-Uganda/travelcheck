@@ -27,7 +27,11 @@ const MappingSchema = {
     name: 'Mapping',
     properties:{
           organisation: 'string',
+          organisation_name: 'string',
           program: 'string',
+          program_name: 'string',
+          program_stage: 'string',
+          program_stage_name: 'string',
           date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
           current: {type: 'bool', default: true},
     }
@@ -39,6 +43,7 @@ const ProgramSchema = {
           id: 'string',
           name: 'string',
           organisationUnits: 'OrganisationUnit[]',
+          programStages: 'ProgramStage[]',
           date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
           current: {type: 'bool', default: false},
     }
@@ -55,6 +60,16 @@ const OrganisationUnitSchema = {
     }
 }
 
+const ProgramStageSchema = {
+    name: 'ProgramStage',
+    properties:{
+          id: 'string',
+          name: 'string',
+          date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+          current: {type: 'bool', default: true},
+    }
+}
+
 class Metadata extends Component {
    constructor(props) {
        super(props)
@@ -63,8 +78,12 @@ class Metadata extends Component {
          orgUnits: {},
          programs: {},
          organisation: "",
+         organisation_name : "",
          program: "",
-         current: true
+         program_name: "",
+         current: true,
+         program_stage: "",
+         program_stage_name: ""
        }
    }
 
@@ -81,7 +100,7 @@ class Metadata extends Component {
    processMetadata = async()=>{
        let programs;
 
-       let realm = await Realm.open({schema: [SecuritySchema, OrganisationUnitSchema, ProgramSchema]});
+       let realm = await Realm.open({schema: [SecuritySchema, OrganisationUnitSchema, ProgramSchema, ProgramStageSchema]});
        const dhis2 = realm.objects('Security').filtered('current == true');
 
        if(!isEmpty(dhis2)){
@@ -96,7 +115,7 @@ class Metadata extends Component {
             if(isEmpty(pgs)){
                 //Create programs in Android
                 console.log("NO PROGRAMS");
-                const program_endpoint = `${url}/api/programs.json?fields=id,name,organisationUnits[id,name]&paging=false`;
+                const program_endpoint = `${url}/api/programs.json?fields=id,name,organisationUnits[id,name],programStages[id,name]&paging=false`;
                 console.log("Tryingto access "+program_endpoint);
                 const response = await this.getDHIS2(program_endpoint,token);
                 console.log(response);
@@ -106,15 +125,24 @@ class Metadata extends Component {
                 realm.write(() => {
                      dhis2_programs.forEach((program)=>{
                          const prog_orgunits =  program.organisationUnits;
+                         const prog_stages =  program.programStages;
+                         console.log(prog_stages);
                          let pg = realm.create('Program', {
                            id: `${program.id}`,
                            name: `${program.name}`,
-                           organisationUnits: []
+                           organisationUnits: [],
+                           programStages: [],
                          });
                          //Process all related orgUnits for the program
                          prog_orgunits.map((orgUnit) =>{
                             pg.organisationUnits.push({name: orgUnit.name, id: orgUnit.id});
                          });
+
+                         //process all related program stages
+                          prog_stages.map((programStage) =>{
+                             pg.programStages.push({name: programStage.name, id: programStage.id});
+                          });
+
                      });
                  });
 
@@ -248,7 +276,12 @@ class Metadata extends Component {
       const {navigation} = this.props;
 
       const organisation = this.state.organisation;
+      const organisation_name = this.state.organisation_name;
       const program = this.state.program;
+      const program_name = this.state.program_name;
+      const program_stage = this.state.program_stage;
+      const program_stage_name = this.state.program_stage_name;
+
       const current = true;
 
       let realmck;
@@ -268,7 +301,11 @@ class Metadata extends Component {
           realmck.write(() => {
            const newMapping = realmck.create('Mapping', {
               organisation: `${organisation}`,
+              organisation_name: `${organisation_name}`,
               program: `${program}`,
+              program_name: `${program_name}`,
+              program_stage: `${program_stage}`,
+              program_stage_name: `${program_stage_name}`,
               current: current
             });
           });
@@ -289,8 +326,6 @@ class Metadata extends Component {
     const {programs, program} = this.state;
 //    const ou = this.state.orgUnits;
 //    const pg = this.state.programs;
-    console.log("ORGUNIT FOR SELECTED PROGRAM");
-    console.log(JSON.parse(JSON.stringify(programs)));
 
 //    this.setState({orgUnits: selectedOrgUnits});
     let orgUnits = {};
@@ -301,6 +336,16 @@ class Metadata extends Component {
                orgUnits = prog.organisationUnits;
             }
          })
+     }
+
+     let pStages = {};
+     if(!isEmpty(programs)){
+          const myStages = Object.values(programs);
+          myStages.forEach((prog)=>{
+             if(this.state.program === prog.id){
+                pStages = prog.programStages;
+             }
+          })
      }
 
     return (
@@ -319,7 +364,10 @@ class Metadata extends Component {
                                    onValueChange={
                                        (itemValue, itemIndex) => {
                                            this.setState({program: itemValue});
-                                       }}
+                                           let progs = Object.values(programs);
+                                           let prog_name = progs.find(prog => prog.id === itemValue);
+                                           this.setState({program_name: prog_name.name});
+                                        }}
                                     >
                                     <Picker.Item key={1} label={'--Select Program --'} value={''}/>
                                    {Object.values(programs).map((program) => {
@@ -336,6 +384,9 @@ class Metadata extends Component {
                                          onValueChange={
                                              (itemValue, itemIndex) => {
                                                  this.setState({organisation: itemValue});
+                                                 let ous = Object.values(orgUnits);
+                                                 let ou_name = ous.find(ou => ou.id === itemValue);
+                                                 this.setState({organisation_name: ou_name.name});
                                              }}
                                           >
                                           <Picker.Item key={1} label={'--Select Organisation Unit --'} value={''}/>
@@ -347,6 +398,31 @@ class Metadata extends Component {
                                         }
                                      </Picker>
                                   </Item> : <Text>SELECT PROGRAM & PROCEED</Text>
+                            }
+                            {
+                                (!isEmpty(pStages))?  <Item stackedLabel>
+                                     <Label>Program Stage</Label>
+                                     <Picker
+                                         selectedValue={this.state.program_stage}
+                                         style={{height: 50, width: '100%'}}
+                                         onValueChange={
+                                             (itemValue, itemIndex) => {
+                                                this.setState({program_stage: itemValue});
+                                                let stages = Object.values(pStages);
+                                                let ps_name = stages.find(stage => stage.id === itemValue);
+                                                this.setState({program_stage_name: ps_name.name});
+                                             }
+                                          }
+                                          >
+                                          <Picker.Item key={1} label={'--Select Program Stage --'} value={''}/>
+                                         {
+                                          Object.values(pStages).map((ps) => {
+                                             return <Picker.Item key={ps.id} label={ps.name} value={ps.id}/>
+                                         })
+
+                                        }
+                                     </Picker>
+                                  </Item> : null
                             }
 
 
