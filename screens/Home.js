@@ -84,19 +84,24 @@ const ScanSchema = {
      isolated: {type: 'bool', default: false},
      investigation: {type: 'bool', default: false},
      quarantined: {type: 'bool', default: false},
+     screener_name: {type: 'string', optional: true},
      submitted: {type: 'bool', default: false}
    }
 };
 
 const MappingSchema = {
-    name: 'Mapping',
-    properties:{
-          organisation: 'string',
-          program: 'string',
-          date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-          current: {type: 'bool', default: true},
-    }
-};
+     name: 'Mapping',
+     properties:{
+           organisation: 'string',
+           organisation_name: 'string',
+           program: 'string',
+           program_name: 'string',
+           program_stage: 'string',
+           program_stage_name: 'string',
+           date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+           current: {type: 'bool', default: true},
+     }
+ };
 
 const CheckpointSchema = {
            name: 'Checkpoint',
@@ -108,6 +113,20 @@ const CheckpointSchema = {
                  current: {type: 'bool', default: true},
             }
         };
+
+const SecuritySchema = {
+       name: 'Security',
+       properties:
+           {
+             instance: 'string',
+             description: 'string',
+             url: 'string',
+             username: 'string',
+             password: 'string',
+             date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
+             current: {type: 'bool', default: true},
+        }
+    };
 
 class Home extends Component {
     constructor(props) {
@@ -177,6 +196,10 @@ class Home extends Component {
              screener_name: "",
              mapped_unit: "",
              mapped_prog: "",
+             mapped_prog_stage: "",
+             security_url: "",
+             security_username: "",
+             security_password: "",
              filter_by: null,
              offline_mode: false,
              submit_ok: false
@@ -221,7 +244,7 @@ class Home extends Component {
 
         this._unsubscribe = this.props.navigation.addListener('focus', () => {
               Realm.open({
-                schema: [CheckpointSchema, MappingSchema]
+                schema: [CheckpointSchema, MappingSchema, SecuritySchema]
               }).then(realmDBL => {
                 const current_checkpoint = realmDBL.objects("Checkpoint").filtered('current==true');
                 const ck_exists = (current_checkpoint.length > 0)? true: false;
@@ -234,12 +257,23 @@ class Home extends Component {
                 if(current_mapping.length> 0){
                     this.setState({mapped_unit: Object.values(mapping)[0].organisation});
                     this.setState({mapped_prog: Object.values(mapping)[0].program});
+                    this.setState({mapped_prog_stage: Object.values(mapping)[0].program_stage});
                 }
 
                 const mp_exists = (current_mapping.length > 0)? true: false;
                 this.setState({current_mappings: current_mapping});
                 (ck_exists) ? this.setState({checkpoint: JSON.stringify(current_checkpoint)}): null;
+
+                const current_dhis2 = realmDBL.objects("Security").filtered('current==true');
+                const security = Object.values(JSON.parse(JSON.stringify(current_dhis2)));
+                if(current_dhis2.length> 0){
+                    this.setState({security_url: Object.values(security)[0].url});
+                    this.setState({security_username: Object.values(security)[0].username});
+                    this.setState({security_password: Object.values(security)[0].password});
+                }
+
                 this.setState({db: realmDBL});
+
                 realmDBL.close();
               });
 
@@ -256,20 +290,6 @@ class Home extends Component {
     }
 
    getDHIS2 = async(api_endpoint)=>{
-       const SecuritySchema = {
-           name: 'Security',
-           properties:
-               {
-                 instance: 'string',
-                 description: 'string',
-                 url: 'string',
-                 username: 'string',
-                 password: 'string',
-                 date_created: {type: 'date', default: moment().format('YYYY-MM-DD')},
-                 current: {type: 'bool', default: true},
-            }
-        };
-
        let realmsec;
        let username;
        let password;
@@ -394,16 +414,6 @@ class Home extends Component {
             offline_mode
         } = this.state;
 
-        if(!offline_mode){
-            console.log("Retrieving remote POE ID");
-
-            const generated = await this.getDHIS2("api/trackedEntityAttributes/CLzIR1Ye97b/generate");
-            const poe_id = generated.value;
-            console.log("POE ID Recieved: "+poe_id);
-        }else{
-            const poe_id = uuid.v4(); //Random placeholder: #TODO: generate new when synchronising to DHIS2 as above.
-        }
-
         const scan = (scanExists === true)? recentScan[0]: recentScan;
 
         const convertBoolean2YesNo = (variable) => {
@@ -439,160 +449,175 @@ class Home extends Component {
                  existScan[0].nin_passport = nin_passport_number;
                  existScan[0].form_id = form_id;
                  existScan[0].departure = departure_country;
-                 existScan[0].destination= destination_country;
-                 existScan[0].address=address_in_uganda;
-                 existScan[0].duration= planned_duration;
-                 existScan[0].nok_name= nok_name;
-                 existScan[0].nok_contact= nok_phone_contact;
-                 existScan[0].temperature= `${temperature}`;
-                 existScan[0].cleared= cleared_to_travel;
-                 existScan[0].specimen_collected= specimen_collected;
-                 existScan[0].specimen_type= specimen_type;
-                 existScan[0].isolated= in_isolation;
+                 existScan[0].destination = destination_country;
+                 existScan[0].address =address_in_uganda;
+                 existScan[0].duration = planned_duration;
+                 existScan[0].nok_name = nok_name;
+                 existScan[0].nok_contact = nok_phone_contact;
+                 existScan[0].temperature = `${temperature}`;
+                 existScan[0].cleared = cleared_to_travel;
+                 existScan[0].specimen_collected = specimen_collected;
+                 existScan[0].specimen_type = specimen_type;
+                 existScan[0].isolated = in_isolation;
                  existScan[0].investigation = further_investigation;
-                 existScan[0].quarantined= quarantined;
+                 existScan[0].quarantined = quarantined;
+                 existScan[0].screener_name = screener_name;
             });
         }
 
         realm.close();
-        this.setState({recorded: "offline"});
+        this.setState({recorded: "offline"}); //CROSSCHECK
 
         if(!offline_mode){
+            let poe_id;
+            console.log("Retrieving remote POE ID");
+            const generated = await this.getDHIS2("api/trackedEntityAttributes/CLzIR1Ye97b/generate");
+            poe_id = generated.value;
+            console.log("POE ID Recieved: "+poe_id);
+
+            console.log("ONLINE. Updating POE_ID"+poe_id);
             const tei_payload = {
-                        "trackedEntityType": "KWN8FUfvO5G", //TODO. ADd as part of DHIS2 Metadata configuration and mapping
-                        "trackedEntity": `${scan.tei}`,
-                        "orgUnit": `${mapped_ou}`,
-                        "attributes":[
-                             {
-                                 "attribute": "CLzIR1Ye97b", //POE_ID
-                                 "value": `${poe_id}`
-                             },
-                             {
-                                 "attribute": "PVXhTjVdB92", //Form ID
-                                 "value": `${form_id}`
-                             },
-                             {
-                                 "attribute": "sB1IHYu2xQT", //FullNames
-                                 "value": `${full_name}`
-                             },
-                             {
-                                 "attribute": "h6aZFN4DLcR", //Vehicle Reg. Num
-                                 "value": `${new_vheicle}`
-                             },
-                             {
-                                 "attribute": "E7u9XdW24SP", //Case Phone Contact
-                                 "value": `${case_phone}`
-                             },
-                             {
-                                 "attribute": "fik9qo8iHeo", // Names of Next of Kin
-                                 "value": `${nok_name}`
-                             },{
-                                 "attribute": "j6sEr8EcULP", // Next of Kin contact
-                                 "value": `${nok_phone_contact}`
-                             },
-                             {
-                                 "attribute": "UJiu0P8GvHt", //Date of arrival
-                                 "value": `${moment().format()}`
-                             },
-                             {
-                                 "attribute": "cW0UPEANS5t", //country of departure
-                                 "value": `${departure_country}`
-                             },
-                             {
-                                 "attribute": "pxcXhmjJeMv", //country of Transit
-                                 "value": `${destination_country}`
-                             },
-                             {
-                                 "attribute": "ooK7aSiAaGq", //Address while in Uganda
-                                 "value": `${address_in_uganda}` //TODO: Add Address Field
-                             },
-                             {
-                                 "attribute": "eH7YTWgoHgo", //planned duration
-                                 "value": `${planned_duration}`
-                             },
-                             {
-                                 "attribute": "QUrkIanwcHD", //Temperature Taken
-                                 "value": `${temperature_measured}`
-                             },
-                             {
-                                 "attribute": "NuRldDwq0AJ", //Specimen Taken
-                                 "value": `${collected}`
-                             },
-                             {
-                                 "attribute": "SI7jnNQpEQM", //Specimen Type
-                                 "value": `${specimen_type}`
-                             },
-                             {
-                                 "attribute": "QhDKRe2QDA7", //Temperature
-                                 "value": `${temperature}`
-                             },
-                             {
-                                 "attribute": "Ep6evsVocKY", //Isolated
-                                 "value": `${isolated}`
-                             },
-                             {
-                                 "attribute": "EZwIFcKvSes", //Referred for further investigation
-                                 "value": `${investigated}`
-                             },
-                             {
-                                 "attribute": "oVFYcqtwPY9", //quarantined
-                                 "value": `${quarantined_travellor}`
-                             },
-                             {
-                                 "attribute": "EWWNozu6TVd", //Cleared to travel
-                                 "value": `${cleared}`
-                             },
-                             {
-                                 "attribute": "oUqWGeHjj5C", //NIN/Passport
-                                 "value": `${nin_passport_number}`
-                             },
-                             {
-                                 "attribute": "XvETY1aTxuB", //Nationality
-                                 "value": `${nationality}` //TODO: Add Nationality ion QR
-                             },
-                             {
-                                 "attribute": "g4LJbkM0R24", //Age (years(
-                                 "value": `${scan.dob}` //TODO: Add Age *Years ion QR
-                             },{
-                                 "attribute": "TU0Jteb9H7F", //COVID Screeners names
-                                 "value": `${screener_name}` //TODO: Add Age *Years ion QR
-                             },
-                             {
-                                 "attribute": "FZzQbW8AWVd", //Sex
-                                 "value": `${sex}` //TODO: Add Age *Years ion QR
-                             }
-                        ],
-                        "enrollments": [
-                            {
-                                 "orgUnit": `${mapped_ou}`,
-                                 "program": `${mapped_pg}`,
-                                 "enrollmentDate": `${moment().format("YYYY-MM-DD")}`,
-                                 "incidentDate": `${moment().format("YYYY-MM-DD")}`
-                            }
-                        ]
+                "trackedEntityType": "KWN8FUfvO5G", //TODO. ADd as part of DHIS2 Metadata configuration and mapping
+                "orgUnit": `${mapped_ou}`,
+                "attributes":[
+                     {
+                         "attribute": "CLzIR1Ye97b", //POE_ID
+                         "value": `${poe_id}`
+                     },
+                     {
+                         "attribute": "PVXhTjVdB92", //Form ID
+                         "value": `${form_id}`
+                     },
+                     {
+                         "attribute": "sB1IHYu2xQT", //FullNames
+                         "value": `${full_name}`
+                     },
+                     {
+                         "attribute": "h6aZFN4DLcR", //Vehicle Reg. Num
+                         "value": `${new_vheicle}`
+                     },
+                     {
+                         "attribute": "E7u9XdW24SP", //Case Phone Contact
+                         "value": `${case_phone}`
+                     },
+                     {
+                         "attribute": "fik9qo8iHeo", // Names of Next of Kin
+                         "value": `${nok_name}`
+                     },{
+                         "attribute": "j6sEr8EcULP", // Next of Kin contact
+                         "value": `${nok_phone_contact}`
+                     },
+                     {
+                         "attribute": "UJiu0P8GvHt", //Date of arrival
+                         "value": `${moment(scan.scan_date).format("YYYY-MM-DDTHH:mm:ss")}`
+                     },
+                     {
+                         "attribute": "cW0UPEANS5t", //country of departure
+                         "value": `${departure_country}`
+                     },
+                     {
+                         "attribute": "pxcXhmjJeMv", //country of Transit
+                         "value": `${destination_country}`
+                     },
+                     {
+                         "attribute": "ooK7aSiAaGq", //Address while in Uganda
+                         "value": `${address_in_uganda}` //TODO: Add Address Field
+                     },
+                     {
+                         "attribute": "eH7YTWgoHgo", //planned duration
+                         "value": `${planned_duration}`
+                     },
+                     {
+                         "attribute": "QUrkIanwcHD", //Temperature Taken
+                         "value": `${temperature_measured}`
+                     },
+                     {
+                         "attribute": "NuRldDwq0AJ", //Specimen Taken
+                         "value": `${collected}`
+                     },
+                     {
+                         "attribute": "SI7jnNQpEQM", //Specimen Type
+                         "value": `${specimen_type}`
+                     },
+                     {
+                         "attribute": "QhDKRe2QDA7", //Temperature
+                         "value": `${temperature}`
+                     },
+                     {
+                         "attribute": "Ep6evsVocKY", //Isolated
+                         "value": `${isolated}`
+                     },
+                     {
+                         "attribute": "EZwIFcKvSes", //Referred for further investigation
+                         "value": `${investigated}`
+                     },
+                     {
+                         "attribute": "oVFYcqtwPY9", //quarantined
+                         "value": `${quarantined_travellor}`
+                     },
+                     {
+                         "attribute": "EWWNozu6TVd", //Cleared to travel
+                         "value": `${cleared}`
+                     },
+                     {
+                         "attribute": "oUqWGeHjj5C", //NIN/Passport
+                         "value": `${nin_passport_number}`
+                     },
+                     {
+                         "attribute": "XvETY1aTxuB", //Nationality
+                         "value": `${nationality}`
+                     },
+                     {
+                         "attribute": "g4LJbkM0R24", //Age (years(
+                         "value": `${scan.dob}`
+                     },{
+                         "attribute": "TU0Jteb9H7F", //COVID Screeners names
+                         "value": `${screener_name}`
+                     },
+                     {
+                         "attribute": "FZzQbW8AWVd", //Sex
+                         "value": `${sex}`
+                     },
+                     {
+                          "attribute": "jXf9YETPNaJ", //OLD POE ID
+                          "value": `${scan.poe_id}`
+                     }
+                ],
+                "enrollments": [
+                    {
+                         "orgUnit": `${mapped_ou}`,
+                         "program": `${mapped_pg}`,
+                         "enrollmentDate": `${moment().format("YYYY-MM-DD")}`,
+                         "incidentDate": `${moment().format("YYYY-MM-DD")}`
                     }
-                    console.log("PAYLOAD BEFORE CALL")
-                    console.log(tei_payload);
+                ]
+            }
+            console.log("PAYLOAD BEFORE CALL")
+            console.log(tei_payload);
 
-                    const response = await this.postDHIS2(tei_payload, 'tei');
-                    const httpStatusCode = response.httpStatusCode; //200
-                    const httpStatus = response.status; //OK
-                    const importStatus = response.response.status; //SUCCESS === true
+            const response = await this.postDHIS2(tei_payload, 'tei');
+            console.log(response);
+            const httpStatusCode = response.httpStatusCode; //200
+            const httpStatus = response.status; //OK
+            const importStatus = response.response.status; //SUCCESS === true
+            const tei_created = response.response.importSummaries.href;
+            console.log(tei_created);
 
-                    const recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
-                    this.setState({recorded: recordSubmitted});
 
-                    //Realm DB UPDATES. TODO: complete task below
-                    const realmU = await Realm.open({schema: [ScanSchema]});
-                    let scanned = await realmU.objects("Scan").filtered("uuid==$0", filter_by);
-                    if(scanned.length > 0){
-                        //Update the Scan record
-                        const written = realmU.write(() => {
-                             scanned[0].submitted = recordSubmitted;
-                        });
-                    }
-                    this.setState({filter_by: null});
-                    realmU.close();
+            const recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
+            this.setState({recorded: recordSubmitted});
+
+            //Realm DB UPDATES. TODO: complete task below
+            const realmU = await Realm.open({schema: [ScanSchema]});
+            let scanned = await realmU.objects("Scan").filtered("uuid==$0", filter_by);
+            if(scanned.length > 0){
+                //Update the Scan record
+                const written = realmU.write(() => {
+                     scanned[0].submitted = recordSubmitted;
+                });
+            }
+            this.setState({filter_by: null});
+            realmU.close();
         }
 
         (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
@@ -790,109 +815,97 @@ class Home extends Component {
                nok_name: "",
                screener_name: "",
                truck_number: "",
-               recorded: false
+               recorded: null
            });
     }
 
     submitCheckRecord = async () => {
-        const {recentScan, scanExists, connection_Status} = await this.state;
+        const {recentScan, scanExists, connection_Status,mapped_prog, mapped_unit,mapped_prog_stage, security_password,security_url,security_username } = await this.state;
         const { navigation} = this.props;
         let payload;
         let api_url;
 
-        if(scanExists){
-            payload = {
-                  "program": `${recentScan[0].program}`,
-                  "trackedEntityInstance":`${recentScan[0].tei}`,
-                  "programStage":`${recentScan[0].program_stage}`,
-                  "orgUnit": `${recentScan[0].org_unit}`,
-                  "eventDate": `${recentScan[0].scan_date}`,
-                  "status": "COMPLETED",
-                  "completedDate": `${recentScan[0].scan_date}`,
-                  "storedBy": "Socaya",
-                  "coordinate": {
-                    "latitude": `${recentScan[0].latitude}`,
-                    "longitude": `${recentScan[0].longitude}`
-                  },
-                  //TODO: Dynamically load DEs from COVID-19 PASS
-                  "dataValues": [
-                    {
-        //              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
-                      "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
-                      "value": `${recentScan[0].checkpoint}`
-                    },
-                    {
-        //              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
-                      "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
-                      "value": `${recentScan[0].scan_time}`
-                    }
-                  ]
-                }
-                api_url = `${recentScan[0].dhis_url}/api/events`;
-        }else{
-         payload = {
-           "program": `${recentScan.program}`,
-           "trackedEntityInstance":`${recentScan.tei}`,
-           "programStage":`${recentScan.program_stage}`,
-           "orgUnit": `${recentScan.org_unit}`,
-           "eventDate": `${recentScan.scan_date}`,
-           "status": "COMPLETED",
-           "completedDate": `${recentScan.scan_date}`,
-           "storedBy": "Socaya",
-           "coordinate": {
-             "latitude": `${recentScan.latitude}`,
-             "longitude": `${recentScan.longitude}`
-           },
-           //TODO: Dynamically load DEs from COVID-19 PASS
-           "dataValues": [
-             {
- //              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
-               "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
-               "value": `${recentScan.checkpoint}`
-             },
-             {
- //              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
-               "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
-               "value": `${recentScan.scan_time}`
-             }
-           ]
-         }
+         //Get Mapping - Program,ProgramStage,OrgUnit
+        const organisation_unit = mapped_unit;
+        const program_stage = mapped_prog_stage;
+        const program = mapped_prog;
 
-         api_url = `${recentScan.dhis_url}/api/events`;
-       }
+        //BAsic steps
+        //Get TEI from online
+        //Filter By - OLD POE ID: jXf9YETPNaJ
+        //Filter By - Arrival Date: UJiu0P8GvHt
+        const scan = (scanExists === true)? recentScan[0]: recentScan;
+
+        const tei_endpoint = `api/trackedEntityInstances.json?ouMode=ALL&filter=jXf9YETPNaJ:eq:${scan.poe_id}&program=${program}&filter=UJiu0P8GvHt:ge:${moment(scan.scan_date).format("YYYY-MM-DD")}&order=created:desc&pageSize=1`;
+        console.log(tei_endpoint);
+        const tei = await this.getDHIS2(tei_endpoint);
+
+
+
+        console.log("TEI Retrieved");
+        let trackedEntityInstance;
+        if(!isEmpty(tei.trackedEntityInstances)){
+            trackedEntityInstance  = tei.trackedEntityInstances[0].trackedEntityInstance;
+            console.log(trackedEntityInstance);
+        }else{
+            //Use TEI from the scan.
+            console.log("NO NEW RECORD FOUND. Using TEI below");
+
+            trackedEntityInstance = scan.tei;
+            console.log(trackedEntityInstance);
+        }
+
+        payload = {
+              "program": `${program}`,
+              "trackedEntityInstance":`${trackedEntityInstance}`,
+              "programStage":`${program_stage}`,
+              "orgUnit": `${organisation_unit}`,
+              "eventDate": `${scan.scan_date}`,
+              "status": "COMPLETED",
+              "completedDate": `${scan.scan_date}`,
+              "storedBy": "Socaya",
+              "coordinate": {
+                "latitude": `${scan.latitude}`,
+                "longitude": `${scan.longitude}`
+              },
+              //TODO: Dynamically load DEs from COVID-19 PASS
+              "dataValues": [
+                {
+    //              "dataElement": "dD5ljdUgNHn", //ugandaeidsr.org
+                  "dataElement": "hcdSE7aTbQT", //eidsr.health.go.ug
+                  "value": `${recentScan[0].checkpoint}`
+                },
+                {
+    //              "dataElement": "Y3crbgZKSrx", //ugandaeidsr.org
+                  "dataElement": "aN2fgA52IrU", //eidsr.health.go.ug
+                  "value": `${recentScan[0].scan_time}`
+                }
+              ]
+            }
+
+        //GetCheckpoint
+//        api_url = `api/events`;
 
         this.setState({
             loading: true,
-        })
+        });
 
-        //TODO: Load from App settings the DHIS2 instance.
-        const username = "Socaya";
-        const password = "Dhis@2020";
-        const token = base64.encode(`${username}:${password}`);
-
-        const status = this.state.connection_Status;
-        let recordSubmitted  = false;
-        //Skip data submission to DHIS2 if not connected
         if(connection_Status === true){
-            const response = await axios.post( api_url, payload,  {
-                headers: {
-                 'Authorization': `Basic ${token}`
-               }
-            });
-
+            const response = await this.postDHIS2(payload, 'events');
+            console.log(response);
             const apiResponse = response;
-            const httpStatusCode = apiResponse.data.httpStatusCode; //200
-            const httpStatus = apiResponse.data.status; //OK
-            const importStatus = apiResponse.data.response.status; //SUCCESS === true
+            const httpStatusCode = apiResponse.httpStatusCode; //200
+            const httpStatus = apiResponse.status; //OK
+            const importStatus = apiResponse.response.status; //SUCCESS === true
 
-            recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
+            const recordSubmitted = (httpStatusCode === 200 && httpStatus === 'OK' && importStatus === 'SUCCESS')? true : false;
 
             this.setState({recorded: recordSubmitted});
             (this.state.recorded != null ) ? this.setState({showStatus: true}): this.setState({showStatus: false});
 
             //Update REALM DB and delete the records, TODO: Add option to autodelete if successful submission
             const realmX = await Realm.open({schema: [ScanSchema]});
-            let updateScan = await realmX.objects("Scan").filtered("poe_id==$0", (scanExists === true)?recentScan[0].poe_id:recentScan.poe_id);
+            let updateScan = await realmX.objects("Scan").filtered("poe_id==$0", scan.poe_id);
             if(updateScan.length > 0){
                 //Update the Scan record
                 realmX.write(() => {
@@ -900,6 +913,7 @@ class Home extends Component {
                 });
             }
             realmX.close();
+
         }
      }
 
@@ -1419,6 +1433,7 @@ class Home extends Component {
      const { scan, ScanResult, result, decryptedData, checkpoint_exists, scanExists, connection_Status, recorded, showStatus, scan_point, current_date,departure_country } = this.state;
      const desccription = 'With the outbreak of COVID-19 Virus, countries took tough measures to prevent its further spread. However, some activities like CARGO shipments through and into a country were allowed. Every crew member allowed in the country is given a TravelPass for verification at checkpoints using this app';
      const { navigation} = this.props;
+     console.log("Recorded Status: "+recorded);
 
      return (
 
@@ -1459,22 +1474,24 @@ class Home extends Component {
                              {
                              (showStatus === true)? <View>
                                 {
-                                    (recorded === true )? Toast.show({
-                                        text: "Successfully Saved!",
-                                        buttonText: "OK",
-                                        type: "success",
-                                        duration: 5000
-                                      }) : ((recorded === "offline")?Toast.show({
-                                              text: "Saved on Phone!",
-                                              buttonText: "OK",
-                                              type: "success",
-                                              duration: 5000
-                                      }):Toast.show({
-                                               text: "Failed to save record",
-                                               buttonText: "Try Again",
-                                               type: "danger",
-                                               duration: 5000
-                                       }))
+                                    (recorded === true)?Toast.show({
+                                          text: "Successfully Sent!",
+                                          buttonText: "OK",
+                                          type: "success",
+                                          duration: 5000
+                                      }) :  (
+                                          (recorded === 'offline')?Toast.show({
+                                                text: "Saved on Phone!",
+                                                buttonText: "OK",
+                                                type: "success",
+                                                duration: 5000
+                                            }):Toast.show({
+                                                text: "Failed to save record",
+                                                buttonText: "Try Again",
+                                                type: "danger",
+                                                duration: 5000
+                                            })
+                                      )
                                 }
                              </View>: <View></View>
                            }
